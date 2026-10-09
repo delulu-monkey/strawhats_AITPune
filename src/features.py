@@ -6,6 +6,10 @@ STEP = 5               # minutes per row after resampling
 H = 120 // STEP        # 24 rows = 2 hours ahead
 
 cgm = pd.read_csv("data/processed/cgmacros_all.csv.gz", parse_dates=["time"])
+# Cap implausible per-meal values (the raw data has errors, e.g. 2,830 g fiber)
+CAPS = {"carbs": 250, "protein": 150, "fat": 150, "fiber": 60}
+for col, cap in CAPS.items():
+    cgm[col] = cgm[col].clip(upper=cap)
 
 
 def build(g):
