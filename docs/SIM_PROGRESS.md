@@ -212,7 +212,39 @@ Every parameter in `src/sim/assumptions.py` is an **assumption, not learned from
 
 ---
 
-## Part 6: (not started)
+## Part 6: Counterfactual Scenario Sandbox & Assumptions Viewer ✅
+**Status:** Complete  
+**Date:** 2026-10-10  
+**Commit:** "Part 6: scenario sandbox"
+
+### What was built
+- `src/sim/scenarios.py` — Counterfactual simulation engine:
+  - Re-simulates the next 24 hours under user-defined behavioral interventions using the **exact same random seed** as baseline, ensuring divergence reflects only the intervention.
+  - Supports 4 intervention modalities (up to 3 simultaneous):
+    1. Adjust tonight's sleep duration (accumulates sleep debt, elevates morning glucose and IR).
+    2. Add food challenge chosen from `data/indian_meals.csv` with portions and timing (gamma-shaped postprandial rise).
+    3. Add a brisk walking session with duration and timing (~3.5 METs, GLUT4 muscular glucose uptake).
+    4. Adjust habitual daily steps schedule.
+  - `compare_metrics(baseline_df, scenario_df)` computes comparative clinical endpoints: peak glucose, time > 180 mg/dL, and mean glucose.
+- `app/sim_ui/scenario_sandbox.py` — Interactive sandbox workspace:
+  - Select patient and start moment.
+  - Choose up to 3 interventions with live timing and portion selectors.
+  - Overlay plot displaying baseline vs counterfactual glucose trajectories on one shared chart with spike threshold (180 mg/dL) and intervention markers.
+  - Clinical comparison cards with delta indicators (Peak glucose $\Delta$, Time > 180 $\Delta$, Mean glucose $\Delta$).
+  - XGBoost spike warning evaluation before and after intervention (Low < 0.75, Watch 0.75–0.91, High $\ge$ 0.91).
+  - SHAP attribution breakdown highlighting specific features that raised or mitigated spike risk.
+  - Mandatory clinical notice: *"Scenario effects come from simulator assumptions (see assumptions file), not from patterns learned in real data."*
+- `app/sim_ui/assumptions_view.py` — Simulation assumptions page:
+  - Complete structured tables of all physiological constants, clinical units, tuned values, and rationale (Fasting, IR, Meal gamma curve, Sleep debt, Walking GLUT4, Genetics, Metformin, Dawn effect, AR(1) noise, Ghost snacks).
+  - Interactive source code viewer rendering `src/sim/assumptions.py` for clinicians and judges.
+- `app/sim_workspace.py` — Sidebar navigation updated with `🧪 Scenario Sandbox` and `⚙️ Simulation Assumptions`.
+- `tests/test_scenarios.py` — Comprehensive unit test suite:
+  1. `test_same_seed_gives_identical_baseline`: exact bitwise equivalence on identical seed.
+  2. `test_high_carb_meal_raises_peak_glucose`: added food challenge raises peak glucose excursion.
+  3. `test_walk_lowers_glucose`: brisk walking blunts post-walk glucose.
+  4. `test_shorter_sleep_raises_morning_glucose`: 4h sleep restriction elevates next-morning fasting glucose.
+- `tests/test_workspace.py` — Extended with automated UI tests for sandbox execution and assumptions page inspection.
+
 
 
 

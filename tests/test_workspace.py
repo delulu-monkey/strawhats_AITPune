@@ -140,3 +140,48 @@ def test_custom_patient_ui_lifecycle(clean_custom_store):
     # Clean up
     delete_patient("ui_test_subject")
     assert not saved_path.exists()
+
+
+def test_scenario_sandbox_ui():
+    """Verify Scenario Sandbox page renders, contains mandatory statement, and executes."""
+    at = AppTest.from_file(APP_PATH)
+    at.run(timeout=30)
+
+    # Navigate to Scenario Sandbox
+    at.sidebar.radio[0].set_value("🧪 Scenario Sandbox").run(timeout=30)
+    assert not at.exception, f"Scenario Sandbox raised exception: {at.exception}"
+
+    all_text = " ".join([m.value for m in at.markdown] + [w.value for w in at.warning])
+    # Mandatory plain statement check
+    assert "Scenario effects come from simulator assumptions (see assumptions file), not from patterns learned in real data." in all_text
+    assert "Define Interventions" in all_text
+
+    # Click run button
+    run_btn = [b for b in at.button if "Run Counterfactual Scenario" in b.label]
+    assert len(run_btn) >= 1, "Expected Run Counterfactual Scenario button"
+    run_btn[0].click().run(timeout=45)
+    assert not at.exception, f"Scenario run raised exception: {at.exception}"
+
+    all_md_post = " ".join([m.value for m in at.markdown])
+    assert "Baseline vs Scenario" in all_md_post
+    assert "Glucose Trajectory Comparison" in all_md_post
+    assert len(at.metric) >= 3, "Expected comparison metrics cards"
+
+
+def test_simulation_assumptions_page():
+    """Verify Simulation Assumptions page renders all categories and raw source code."""
+    at = AppTest.from_file(APP_PATH)
+    at.run(timeout=30)
+
+    # Navigate to Simulation Assumptions
+    at.sidebar.radio[0].set_value("⚙️ Simulation Assumptions").run(timeout=30)
+    assert not at.exception, f"Assumptions page raised exception: {at.exception}"
+
+    all_md = " ".join([m.value for m in at.markdown])
+    assert "Virtual Patient Simulation Assumptions" in all_md
+    assert "Fasting Glucose Model" in all_md
+    assert "Meal Response Curve" in all_md
+    assert "Sleep Debt Effects" in all_md
+    assert "Physical Activity & Walking" in all_md
+    assert "Complete Source File" in all_md
+    assert len(at.code) >= 1, "Expected raw assumptions.py source code block"

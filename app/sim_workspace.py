@@ -16,6 +16,8 @@ from app.sim_ui.badges import render_banner
 from app.sim_ui.patients_list import render_patients_list
 from app.sim_ui.patient_view import render_patient_view
 from app.sim_ui.real_patients import render_real_patients
+from app.sim_ui.scenario_sandbox import render_scenario_sandbox
+from app.sim_ui.assumptions_view import render_assumptions_view
 
 st.set_page_config(
     page_title="Virtual Patient Simulation Workspace",
@@ -36,7 +38,9 @@ def main() -> None:
     nav_options = [
         "👥 Patients Directory",
         "🔬 Patient View & Risk",
+        "🧪 Scenario Sandbox",
         "📋 Real Reference Patients",
+        "⚙️ Simulation Assumptions",
     ]
 
     # Map session state navigation if set from inspect buttons
@@ -44,8 +48,12 @@ def main() -> None:
     default_idx = 0
     if active_nav == "Patient View":
         default_idx = 1
-    elif active_nav == "Real Patients":
+    elif active_nav == "Scenario Sandbox":
         default_idx = 2
+    elif active_nav == "Real Patients":
+        default_idx = 3
+    elif active_nav == "Assumptions":
+        default_idx = 4
 
     chosen_nav = st.sidebar.radio(
         "Navigation",
@@ -79,8 +87,12 @@ def main() -> None:
         render_patients_list()
     elif chosen_nav == "🔬 Patient View & Risk":
         render_patient_view()
+    elif chosen_nav == "🧪 Scenario Sandbox":
+        render_scenario_sandbox()
     elif chosen_nav == "📋 Real Reference Patients":
         render_real_patients()
+    elif chosen_nav == "⚙️ Simulation Assumptions":
+        render_assumptions_view()
 
 
 if __name__ == "__main__":
