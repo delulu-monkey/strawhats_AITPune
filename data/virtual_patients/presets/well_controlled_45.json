@@ -1,0 +1,45 @@
+{
+  "name": "Well-Controlled 45yo",
+  "description": "45-year-old with well-controlled glycemia, consistent sleep schedule, and regular walking routine.",
+  "source": "simulated",
+  "seed": 101,
+  "age": 45,
+  "sex": "M",
+  "height_cm": 172.0,
+  "weight_kg": 70.0,
+  "hba1c": 5.4,
+  "fasting_glucose": 92.0,
+  "insulin": 7.5,
+  "triglycerides": 110.0,
+  "total_cholesterol": 175.0,
+  "hdl": 55.0,
+  "ldl": 98.0,
+  "diagnoses": [
+    "Normoglycemic",
+    "Routine Health Maintenance"
+  ],
+  "medications": [],
+  "genetic_markers": {
+    "variant_alleles": {
+      "TCF7L2": 0,
+      "PPARG": 0,
+      "KCNJ11": 1,
+      "CDKAL1": 0,
+      "SLC30A8": 0
+    },
+    "genetic_risk_score": 28.0
+  },
+  "lifestyle": {
+    "typical_sleep_hours": 7.5,
+    "sleep_variability_hours": 0.4,
+    "bedtime_hour": 22.5,
+    "steps_per_day": 8500,
+    "resting_heart_rate": 65.0,
+    "meal_times": {
+      "breakfast": [8, 0],
+      "lunch": [13, 0],
+      "dinner": [19, 30]
+    },
+    "unlogged_snack_prob": 0.015
+  }
+}

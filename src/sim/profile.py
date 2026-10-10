@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import copy
 import math
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, fields
 from typing import Dict, List, Optional
 
 from src.sim.assumptions import (
@@ -117,6 +117,10 @@ class VirtualPatient:
     # Determinism
     seed: int = 42
 
+    # Metadata & Provenance
+    description: str = ""
+    source: str = "simulated"
+
     # ── Derived properties ────────────────────────────────────────────────
 
     @property
@@ -182,6 +186,8 @@ class VirtualPatient:
             raise ValueError(f"hdl must be 10–150; got {self.hdl}")
         if not 10 <= self.ldl <= 400:
             raise ValueError(f"ldl must be 10–400; got {self.ldl}")
+        if self.source != "simulated":
+            raise ValueError(f"source must be 'simulated'; got {self.source!r}")
         bmi = self.bmi
         if not 10 <= bmi <= 80:
             raise ValueError(f"Derived BMI must be 10–80; got {bmi}")
@@ -212,6 +218,9 @@ class VirtualPatient:
             if "meal_times" in ls:
                 ls["meal_times"] = {k: tuple(v) for k, v in ls["meal_times"].items()}
             d["lifestyle"] = Lifestyle(**ls)
-        patient = cls(**d)
+        # Filter to declared dataclass fields so extra JSON keys don't error
+        valid_fields = {f.name for f in fields(cls)}
+        cleaned = {k: v for k, v in d.items() if k in valid_fields}
+        patient = cls(**cleaned)
         patient.validate()
         return patient

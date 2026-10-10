@@ -149,6 +149,35 @@ Every parameter in `src/sim/assumptions.py` is an **assumption, not learned from
 
 ---
 
-## Part 4: (not started)
+## Part 4: Virtual Patient Storage and Preset Personas ✅
+**Status:** Complete  
+**Date:** 2026-10-10  
+**Commit:** "Part 4: patient store"
+
+### What was built
+- `src/sim/store.py` — Storage manager for virtual patients:
+  - Save, load, list, update, and delete individual JSON files in `data/virtual_patients/custom/` (gitignored).
+  - Load read-only preset personas from `data/virtual_patients/presets/` (committed).
+  - Preset read-only protection: `PermissionError` is raised if save, overwrite, update, or delete is attempted on any preset ID or preset name.
+  - Strict preservation of patient seed during all saves and updates.
+  - Full schema validation with `VirtualPatient` dataclass, raising clear and informative error messages.
+  - Mandatory `source="simulated"` verification and injection.
+- `data/virtual_patients/presets/` — 6 committed clinical preset personas with one-line descriptions, complete fields, and deterministic seeds:
+  1. `well_controlled_45.json` — 45yo male, HbA1c 5.4%, consistent sleep & walking routine (seed 101).
+  2. `poorly_controlled_55_sleep_deprived.json` — 55yo female, HbA1c 8.8%, chronic ~5h sleep debt, elevated IR (seed 202).
+  3. `sedentary_night_shift_worker.json` — 42yo male, HbA1c 6.4%, inverted circadian schedule & night snacking (seed 303).
+  4. `active_38_early_disease.json` — 38yo female, HbA1c 5.9%, 11,500 daily steps, early prediabetes (seed 404).
+  5. `older_metformin_high_cholesterol.json` — 68yo male, HbA1c 7.3%, metformin + statin therapy, hypercholesterolemia (seed 505).
+  6. `lean_high_genetic_risk.json` — 34yo female, BMI 20.8, HbA1c 6.1%, high polygenic score 89 (seed 606).
+- Provenance helper (`get_provenance_map` / `get_provenance`) — maps every canonical patient field to one of:
+  - `"SIMULATED"` (for preset or synthetic/inferred fields)
+  - `"USER-ENTERED"` (for values typed into the doctor UI form)
+  - `"NOT AVAILABLE"` (strictly enforced for real CGMacros participants on sensors/fields lacking in the real dataset: sleep stages, steps, HRV, genetics, diagnoses, medications).
+- `tests/test_store.py` — 6 test suites covering inventory, simulation runs (all 6 presets run through `simulate()` without errors), read-only protection, CRUD round-trips with seed preservation, validation error checking, and clinical provenance mapping.
+
+---
+
+## Part 5: (not started)
+
 
 

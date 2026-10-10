@@ -1,0 +1,45 @@
+{
+  "name": "Sedentary Night-Shift Worker",
+  "description": "42-year-old night-shift worker with inverted circadian schedule, low physical activity, and nocturnal snacking.",
+  "source": "simulated",
+  "seed": 303,
+  "age": 42,
+  "sex": "M",
+  "height_cm": 175.0,
+  "weight_kg": 88.0,
+  "hba1c": 6.4,
+  "fasting_glucose": 118.0,
+  "insulin": 16.0,
+  "triglycerides": 195.0,
+  "total_cholesterol": 215.0,
+  "hdl": 42.0,
+  "ldl": 134.0,
+  "diagnoses": [
+    "Prediabetes",
+    "Shift Work Sleep Disorder"
+  ],
+  "medications": [],
+  "genetic_markers": {
+    "variant_alleles": {
+      "TCF7L2": 1,
+      "PPARG": 1,
+      "KCNJ11": 0,
+      "CDKAL1": 1,
+      "SLC30A8": 1
+    },
+    "genetic_risk_score": 58.0
+  },
+  "lifestyle": {
+    "typical_sleep_hours": 6.0,
+    "sleep_variability_hours": 1.2,
+    "bedtime_hour": 8.0,
+    "steps_per_day": 3200,
+    "resting_heart_rate": 75.0,
+    "meal_times": {
+      "breakfast": [17, 0],
+      "lunch": [23, 0],
+      "dinner": [4, 30]
+    },
+    "unlogged_snack_prob": 0.05
+  }
+}
