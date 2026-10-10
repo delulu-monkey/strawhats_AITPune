@@ -245,6 +245,45 @@ Every parameter in `src/sim/assumptions.py` is an **assumption, not learned from
   4. `test_shorter_sleep_raises_morning_glucose`: 4h sleep restriction elevates next-morning fasting glucose.
 - `tests/test_workspace.py` — Extended with automated UI tests for sandbox execution and assumptions page inspection.
 
+---
+
+## Part 7: Visual Polish and Cleanup ✅
+**Status:** Complete  
+**Date:** 2026-10-10  
+**Commit:** "Part 7: polish and docs"
+
+### What was built
+1. **Original Visual Theme (`app/sim_ui/theme.py`):**
+   - Built entirely with code using CSS and inline SVG (zero external or downloaded images, zero font CDN calls).
+   - Dark navy palette: deep background (`#070d1e` / `#0b132b`), glassmorphism cards (`rgba(15, 23, 42, 0.78)` with `backdrop-filter: blur(12px)` and subtle cyan borders).
+   - Cyan glow accents (`#06b6d4`, `#38bdf8`, `#22d3ee`) on buttons, tabs, and metric indicators.
+   - High-contrast Matplotlib chart theme configuring `plt.rcParams` (`#0b132b` figure, `#0f172a` axes, crisp `#e2e8f0` labels, `#38bdf8` and `#f43f5e` signal curves) ensuring maximum readability.
+   - Stylised human-body outline rendered strictly as an inline SVG (`get_human_body_svg`) with glowing organ nodes (Brain/Circadian, Cardiac, Pancreas/Metabolic, Liver/Endocrine, Locomotion/Musculoskeletal) and directional callout lines.
+   - Patient biometric overview card (`render_patient_body_overview`) with 5 surrounding telemetry cards (continuous glucose, heart rate/HRV, sleep architecture, mobility steps, key metabolic labs) displaying current patient values alongside non-negotiable provenance badges.
+2. **Performance & Caching Verification:**
+   - Multi-day physiological simulations cached deterministically via `@st.cache_data` (`run_simulation_cached`: fresh ~47 ms, cached < 1 ms).
+   - ML model loading and SHAP TreeExplainer cached in memory via `@st.cache_resource` (`load_models`: ~0.20 s).
+   - Counterfactual 24-hour sandbox simulations execute in ~25 ms.
+   - All interactive UI clicks respond in well under the 2-second target.
+3. **Fresh-Environment Validation:**
+   - Identified and added missing dependencies to `requirements.txt`: `pytest==9.1.1`, `openpyxl==3.1.5`, `iniconfig==2.3.1`, `pluggy==1.6.0`, `et_xmlfile==2.0.0`.
+   - Created a fresh virtual environment from scratch using `requirements.txt`.
+   - Verified that all 39 unit and UI integration tests pass cleanly (`39 passed in 13.00s`).
+   - Verified that the Streamlit application starts cleanly on `streamlit run app/sim_workspace.py`.
+4. **Documentation (`README.md`):**
+   - Appended a comprehensive "Simulation workspace" section covering:
+     - Purpose and clinical use cases.
+     - The 7 non-negotiable honesty rules.
+     - Explanation of the 4 provenance badges (`REAL`, `SIMULATED`, `USER-ENTERED`, `NOT AVAILABLE`).
+     - Real vs. Simulated data comparison table across all 10 modalities.
+     - Links to the fidelity report (`docs/results/sim_fidelity.md`) and digital twin report (`docs/results/twin_model_report.md`).
+     - How to run commands and limitations.
+5. **Git Tracking Cleanliness:**
+   - Verified `.gitignore` prevents tracking of raw data (`data/raw/cgmacros/`, `data/raw/indb/`), simulated cohort data (`data/simulated/`), and custom patient JSON files (`data/virtual_patients/custom/`).
+   - Reverted accidental touches to `data/processed/features.csv.gz` from test runs.
+   - Added `.pytest_cache/` to `.gitignore`.
+
+
 
 
 

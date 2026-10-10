@@ -6,3 +6,4 @@ data/raw/indb/
 data/simulated/
 data/virtual_patients/custom/
 *.parquet
+.pytest_cache/

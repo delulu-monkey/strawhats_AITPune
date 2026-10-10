@@ -22,6 +22,7 @@ import streamlit as st
 
 from app.sim_ui.common import load_real_bio_data
 from app.sim_ui.badges import badge_html, label_with_badge
+from app.sim_ui.theme import render_patient_body_overview
 
 
 @st.cache_data
@@ -93,6 +94,9 @@ def render_real_patients() -> None:
         f"<span style='font-size:0.9rem;color:#9ca3af;'>({row['group'].upper()})</span>",
         unsafe_allow_html=True,
     )
+
+    # Stylised Human Body Biometric Overview Card (Part 7)
+    render_patient_body_overview(None, is_real=True, real_row=row)
 
     # Tabs
     tab_bio, tab_missing, tab_cgm = st.tabs([

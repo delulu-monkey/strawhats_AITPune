@@ -32,6 +32,7 @@ from app.sim_ui.common import (
     run_simulation_cached,
 )
 from app.sim_ui.badges import badge_html, label_with_badge
+from app.sim_ui.theme import render_patient_body_overview
 
 # Model thresholds and caps
 THR = 180.0
@@ -107,6 +108,9 @@ def render_patient_view() -> None:
     # Run / Retrieve Cached Simulation
     p_json = json.dumps(patient.to_dict())
     gdf, sdf, feats = run_simulation_cached(p_json, days=days_sim)
+
+    # Stylised Human Body Biometric Overview Card (Part 7)
+    render_patient_body_overview(patient, simulation_df=gdf, prov_map=prov_map)
 
     st.divider()
 

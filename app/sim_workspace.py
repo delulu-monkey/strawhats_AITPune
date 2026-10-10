@@ -13,6 +13,7 @@ from __future__ import annotations
 import streamlit as st
 
 from app.sim_ui.badges import render_banner
+from app.sim_ui.theme import apply_theme
 from app.sim_ui.patients_list import render_patients_list
 from app.sim_ui.patient_view import render_patient_view
 from app.sim_ui.real_patients import render_real_patients
@@ -28,6 +29,9 @@ st.set_page_config(
 
 
 def main() -> None:
+    # Custom Dark Navy & Cyan Glow Theme
+    apply_theme()
+
     # Mandatory Research Disclaimer Banner at top of page
     render_banner()
 
