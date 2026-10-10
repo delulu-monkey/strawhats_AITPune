@@ -110,7 +110,45 @@ Every parameter in `src/sim/assumptions.py` is an **assumption, not learned from
 - **T2D Severe Hyperglycemia:** Real T2D time > 180 mg/dL is 16.02% vs sim 6.63%. In the real dataset, several unmanaged T2D subjects had fasting glucoses exceeding 180 mg/dL (up to 218 mg/dL). Virtual profiles model typical managed patients (fasting ~120–135 mg/dL).
 - **Overnight Standard Deviation (Population vs Within-Subject):** Real overnight SD across pooled group readings is 18.9–36.1 mg/dL because real participants have large inter-individual fasting baseline differences (T2D fasting SD ±29.6 mg/dL). Simulated within-subject nocturnal SD is 14–18 mg/dL, matching true physiological nocturnal CGM fluctuations.
 
+## Part 3: Virtual Cohort and Digital Twin Model ✅
+**Status:** Complete  
+**Date:** 2026-10-10  
+**Commit:** "Part 3: cohort and twin model"
+
+### What was built
+- `src/sim/featurize.py` — transforms 5-minute timeseries into the exact 18 dynamic + 5 static feature table produced by `build()` in `src/features.py`, plus 5 simulated twin features (`sleep_hours_last_night`, `deep_pct_last_night`, `steps_60m`, `hrv_rmssd_30m`, `genetic_risk_score`).
+- `tests/test_featurize.py` — unit tests taking a real CGMacros participant's 5-minute data, running both pipelines, and asserting all shared features are numerically identical (0.0 absolute difference). Also tests scoring with existing `models/xgb_spike_model.pkl`.
+- `src/sim/cohort.py` — generates a cohort of 300 virtual patients (14 days each, 1,209,600 epochs) spanning ages 30–75, HbA1c 5.0–10.0%, varied sleep habits, activity levels, and genetic risk scores. Saves `cohort_timeseries.parquet`, `cohort_features.parquet`, and `cohort_profiles.json` into `data/simulated/` (gitignored). Includes `source="simulated"` column.
+- `src/sim/train_twin.py` — trains the Digital Twin XGBoost classifier on the 27 features (22 shared + 5 twin inputs), with 5-fold `GroupKFold` split by patient. Saves `models/twin_model.pkl`.
+- `tests/test_twin.py` — unit tests verifying cohort bounds, `models/twin_model.pkl` structure, and inference scoring.
+- `docs/results/twin_model_report.md` — comprehensive report with executive summary, GroupKFold CV tables, Sim-to-Real transfer metrics, and feature importances. Includes mandatory disclaimer banner.
+
+### Model Performance Summary
+
+#### 1. Simulated Cohort GroupKFold CV (Unseen Virtual Patients)
+- **Baseline Shared Model (22 features):** ROC-AUC = **0.980**, PR-AUC = **0.896**, Precision = 0.604, Recall = **0.943**
+- **Digital Twin Model (27 features):** ROC-AUC = **0.980**, PR-AUC = **0.896**, Precision = 0.607, Recall = **0.943**
+
+#### 2. Sim-to-Real and Real-to-Sim Transfer Evaluation
+- **Real Model on Simulated Data:** ROC-AUC = **0.894**, PR-AUC = **0.562** (real XGBoost model scores simulated trajectories accurately).
+- **Sim Model on Real Data (ALL 45 participants):** ROC-AUC = **0.850**, PR-AUC = **0.319**, Recall = **0.794** (strong out-of-domain transfer).
+- **Sim Model on Real Data (Unseen T2D only):** ROC-AUC = **0.755**, PR-AUC = **0.389**, Recall = **0.934** (captures 93.4% of real T2D spikes within next 2 hours).
+
+#### 3. Top Feature Importances (Twin Model)
+1. `fasting_glu` (0.2495)
+2. `hba1c` (0.1969)
+3. `mets_mean_30m` (0.0948)
+4. `carbs_3h` (0.0710)
+5. `glu_now` (0.0589)
+6. `min_since_meal` (0.0552)
+7. `hour_cos` (0.0479)
+8. `glu_chg_30m` (0.0369)
+9. `act_kcal_60m` (0.0287)
+10. `hour_sin` (0.0285)
+- Extra twin inputs: `steps_60m` (0.0139), `genetic_risk_score` (0.0087), `hrv_rmssd_30m` (0.0048), `sleep_hours_last_night` (0.0038), `deep_pct_last_night` (0.0037).
+
 ---
 
-## Part 3: (not started)
+## Part 4: (not started)
+
 
