@@ -79,9 +79,9 @@ def _gamma_curve(n_epochs: int, shape: float, peak_epoch: float) -> np.ndarray:
     rate = (shape - 1) / max(peak_epoch, 1)
     t = np.arange(1, n_epochs + 1).astype(float)
     y = t ** (shape - 1) * np.exp(-rate * t)
-    total = y.sum()
-    if total > 0:
-        y /= total
+    peak_val = y.max()
+    if peak_val > 0:
+        y /= peak_val
     return y
 
 

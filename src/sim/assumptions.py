@@ -12,16 +12,18 @@ Change any value here and rerun the simulation; nothing else needs editing.
 # Fasting glucose model
 # ---------------------------------------------------------------------------
 
-# ADAG-style linear mapping: eAG (mg/dL) ≈ 28.7 * HbA1c − 46.7.
-# We use this for fasting glucose with a modest IR adder.
-FASTING_GLUCOSE_INTERCEPT = -46.7  # mg/dL — assumption, not learned from data
+# Fasting glucose ≈ intercept + slope * HbA1c + IR adder.
+# Tuned so healthy (HbA1c ~5.2, IR ~1.0) gives fasting ~78; T2D (HbA1c ~7.2)
+# gives fasting ~130.  The ADAG formula overestimates fasting because it
+# models *average* glucose, not fasting.
+FASTING_GLUCOSE_INTERCEPT = -43.0  # mg/dL, calibrated to match real overnight mean (~75 healthy, ~99 prediabetes, ~120 T2D) — assumption, not learned from data
 
-# Each 1 % increase in HbA1c adds ~28.7 mg/dL fasting glucose.
-FASTING_GLUCOSE_HBA1C_SLOPE = 28.7  # mg/dL per %  — assumption, not learned from data
+# Each 1 % increase in HbA1c adds this many mg/dL to fasting glucose.
+FASTING_GLUCOSE_HBA1C_SLOPE = 22.0  # mg/dL per %, calibrated for healthy vs T2D fasting separation — assumption, not learned from data
 
 # IR adder: each unit of IR above 1.0 adds this many mg/dL to fasting.
 # Keeps fasting glucose linear rather than explosive at high IR.
-FASTING_GLUCOSE_IR_ADDER_PER_UNIT = 8.0  # mg/dL per IR unit above 1.0 — assumption, not learned from data
+FASTING_GLUCOSE_IR_ADDER_PER_UNIT = 6.0  # mg/dL per IR unit above 1.0 — assumption, not learned from data
 
 # ---------------------------------------------------------------------------
 # Insulin resistance score  (dimensionless, 1.0 = normal sensitivity)
@@ -30,10 +32,10 @@ FASTING_GLUCOSE_IR_ADDER_PER_UNIT = 8.0  # mg/dL per IR unit above 1.0 — assum
 # Baseline IR is additive from HbA1c and BMI contributions.
 # IR = 1.0 + hba1c_excess + bmi_excess + genetic + sleep_debt.
 # HbA1c contribution: 0.15 per % above 5.0 — someone with 7 % gets +0.30.
-IR_HBA1C_FACTOR_PER_PCT = 0.15  # per % above 5.0 — assumption, not learned from data
+IR_HBA1C_FACTOR_PER_PCT = 0.45  # per % above 5.0, calibrated for post-meal rise scaling across groups — assumption, not learned from data
 
-# BMI contribution: 0.02 per kg/m² above 22 — BMI 30 → +0.16.
-IR_BMI_FACTOR_PER_UNIT = 0.02  # per kg/m² above 22 — assumption, not learned from data
+# BMI contribution: 0.020 per kg/m² above 22 — BMI 30 → +0.16.
+IR_BMI_FACTOR_PER_UNIT = 0.020  # per kg/m² above 22 — assumption, not learned from data
 
 # ---------------------------------------------------------------------------
 # Meal response curve (gamma-shaped)
@@ -46,7 +48,7 @@ MEAL_PEAK_MINUTES = 50.0  # 45–60 min is typical; mid-range — assumption, no
 MEAL_GAMMA_SHAPE = 4.0  # shape > 1 gives a rise-then-fall curve — assumption, not learned from data
 
 # How many mg/dL glucose rise per gram of carbohydrate at IR = 1.0.
-MEAL_CARB_SENSITIVITY = 0.7  # mg/dL per g carb at IR=1.0 — assumption, not learned from data
+MEAL_CARB_SENSITIVITY = 0.55  # mg/dL per g carb at IR=1.0, calibrated to match real 2-h post-meal rises — assumption, not learned from data
 
 # Fiber blunts the glycemic response (each g fiber offsets some carb effect).
 MEAL_FIBER_OFFSET_PER_G = 0.5  # g effective-carb reduction per g fiber — assumption, not learned from data
@@ -121,7 +123,7 @@ T2D_VARIANTS = [
 METFORMIN_FASTING_REDUCTION = 15.0  # mg/dL — assumption, not learned from data
 
 # Metformin also mildly reduces post-meal excursions.
-METFORMIN_POSTMEAL_REDUCTION_FRAC = 0.10  # 10 % of excursion — assumption, not learned from data
+METFORMIN_POSTMEAL_REDUCTION_FRAC = 0.05  # 5 % post-meal reduction — assumption, not learned from data
 
 # ---------------------------------------------------------------------------
 # Dawn phenomenon
@@ -130,17 +132,17 @@ METFORMIN_POSTMEAL_REDUCTION_FRAC = 0.10  # 10 % of excursion — assumption, no
 # Between ~4 AM and ~8 AM, hepatic glucose output rises due to cortisol/GH.
 DAWN_EFFECT_START_HOUR = 4.0   # assumption, not learned from data
 DAWN_EFFECT_END_HOUR = 8.0     # assumption, not learned from data
-DAWN_EFFECT_MAX_MG = 15.0      # peak mg/dL rise at mid-point — assumption, not learned from data
+DAWN_EFFECT_MAX_MG = 9.0       # peak mg/dL rise at mid-point, calibrated to nocturnal curve — assumption, not learned from data
 
 # ---------------------------------------------------------------------------
 # CGM / sensor noise  (AR(1) process)
 # ---------------------------------------------------------------------------
 
 # Auto-regressive coefficient (0 = white noise, 0.9 = slowly drifting).
-SENSOR_AR1_PHI = 0.7  # CGM sensors show correlated lag errors — assumption, not learned from data
+SENSOR_AR1_PHI = 0.72  # CGM sensors show correlated lag errors — assumption, not learned from data
 
 # Standard deviation of the innovation noise (mg/dL).
-SENSOR_NOISE_SD = 3.0  # typical Libre MARD ≈ 9 %; at 100 mg/dL ≈ 9 mg/dL total — assumption, not learned from data
+SENSOR_NOISE_SD = 8.5  # calibrated to match real Libre overnight variability (15-25 mg/dL) — assumption, not learned from data
 
 # ---------------------------------------------------------------------------
 # Unlogged snacks
@@ -148,19 +150,19 @@ SENSOR_NOISE_SD = 3.0  # typical Libre MARD ≈ 9 %; at 100 mg/dL ≈ 9 mg/dL to
 
 # Probability that an unlogged snack occurs in each 5-min epoch during
 # waking hours (set per-profile; this is the default).
-UNLOGGED_SNACK_PROB_PER_EPOCH = 0.002  # ~0.2 % per 5-min ≈ 2-3 snacks/day — assumption, not learned from data
+UNLOGGED_SNACK_PROB_PER_EPOCH = 0.001  # ~0.1 % per 5-min ≈ 1-2 snacks/day — assumption, not learned from data
 
 # When an unlogged snack happens, its effective carb content (g).
-UNLOGGED_SNACK_CARBS_MEAN = 15.0  # g — assumption, not learned from data
-UNLOGGED_SNACK_CARBS_SD = 5.0     # g — assumption, not learned from data
+UNLOGGED_SNACK_CARBS_MEAN = 12.0  # g — assumption, not learned from data
+UNLOGGED_SNACK_CARBS_SD = 4.0     # g — assumption, not learned from data
 
 # ---------------------------------------------------------------------------
 # Heart-rate / HRV model
 # ---------------------------------------------------------------------------
 
 # Resting HR varies by age; this is a simple linear model.
-HR_BASE_AGE_INTERCEPT = 75.0  # bpm at age 0 (extrapolated) — assumption, not learned from data
-HR_BASE_AGE_SLOPE = -0.1       # bpm per year of age — assumption, not learned from data
+HR_BASE_AGE_INTERCEPT = 85.0  # bpm at age 0, calibrated to match real CGMacros HR ~78 bpm — assumption, not learned from data
+HR_BASE_AGE_SLOPE = -0.08      # bpm per year of age — assumption, not learned from data
 
 # Activity adds HR on top of resting.
 HR_ACTIVITY_PER_MET = 8.0  # bpm per MET above 1 — assumption, not learned from data
@@ -206,7 +208,7 @@ SLEEP_REM_FRAC_LATER = 0.25     # assumption, not learned from data
 
 # Between meals, glucose drifts back toward fasting with this exponential
 # half-life (minutes).
-GLUCOSE_RETURN_HALFLIFE_MIN = 60.0  # assumption, not learned from data
+GLUCOSE_RETURN_HALFLIFE_MIN = 25.0  # calibrated post-meal clearance half-life — assumption, not learned from data
 
 # ---------------------------------------------------------------------------
 # Step generation
@@ -228,9 +230,10 @@ DEFAULT_MEAL_TIMES = {
 }
 
 # Portion multiplier ranges for each meal type.
+# Calibrated so meal carbohydrate content matches real CGMacros (~50–55 g per meal).
 PORTION_MULTIPLIER_RANGE = {
-    "breakfast": (0.8, 1.2),  # assumption, not learned from data
-    "lunch":     (1.0, 1.5),
-    "snack":     (0.5, 0.8),
-    "dinner":    (1.0, 1.5),
+    "breakfast": (1.4, 2.0),  # assumption, not learned from data
+    "lunch":     (1.6, 2.4),
+    "snack":     (0.8, 1.4),
+    "dinner":    (1.6, 2.4),
 }
