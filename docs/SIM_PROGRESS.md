@@ -177,7 +177,43 @@ Every parameter in `src/sim/assumptions.py` is an **assumption, not learned from
 
 ---
 
-## Part 5: (not started)
+## Part 5: Streamlit Workspace, Patient Creation, and Full Patient View ✅
+**Status:** Complete  
+**Date:** 2026-10-10  
+**Commit:** "Part 5: workspace UI"
+
+### What was built
+- `app/sim_workspace.py` — Streamlit workspace application entry point:
+  - Top research prototype disclaimer banner: *"Research prototype. For simulated or anonymised patients only. Not a medical device."*
+  - Expanded sidebar navigation across 3 functional sections:
+    1. **Patients Directory (`app/sim_ui/patients_list.py`):**
+       - Displays presets and custom patients with `SIMULATED` badges.
+       - Instant search box filtering by name, clinical description, or ID.
+       - Complete "Add patient" form covering all parameters in the `VirtualPatient` dataclass (demographics with live BMI calculation, labs, diagnoses, medications, genetic markers, lifestyle schedule, and deterministic seed).
+       - Field-level validation with clear and readable error alerts.
+       - Edit and delete actions restricted strictly to custom patients (presets are protected as read-only).
+    2. **Patient View (`app/sim_ui/patient_view.py`):**
+       - Simulates N days (default 7, adjustable 1–14) cached by seed and profile via `@st.cache_data`.
+       - Five comprehensive tabs:
+         - *Profile & Labs:* Demographics, glycemic panel, lipid panel, and insulin resistance index with provenance badges.
+         - *Diagnoses, Medications & Genetics:* Medical conditions, active medications, composite genetic risk score, and 5 T2D variant allele counts.
+         - *Wearables & Sensors:* CGM timeline with meal markers and target bands (70–180 mg/dL), sleep hypnogram stages (Deep/Light/REM/Awake), step count bar chart, continuous heart rate and nocturnal HRV (RMSSD).
+         - *Meal Log:* Detailed chronological intake table with dish names, macronutrients, and calories.
+         - *Spike Risk & What-If:* Interactive moment slider (5-min step), local window plot ($\pm 6\text{h}/+2\text{h}$), XGBoost spike probability scored on `models/xgb_spike_model.pkl` with alert cutoffs (`LOW < 0.75`, `WATCH 0.75–0.91`, `HIGH >= 0.91`), SHAP top reasons grouped as in `dashboard.py` (excluding static age/bmi/male), and Indian dish what-if peak prediction using `models/meal_response_rf.pkl` and `data/indian_meals.csv`.
+    3. **Real Reference Patients (`app/sim_ui/real_patients.py`):**
+       - Read-only inspection of the 45 CGMacros human participants from `bio.csv`.
+       - Observed clinical and laboratory data labelled with `REAL` badges.
+       - Modalities not collected in the clinical study (sleep stages, pedometer steps, HRV, genetic variants, chronic diagnoses, medications) strictly show `NOT AVAILABLE` badges.
+       - Never attaches simulated values or synthetic approximations to real human participants (Honesty Rule 2).
+- `app/sim_ui/badges.py` — Provenance badge rendering (`REAL`, `SIMULATED`, `USER-ENTERED`, `NOT AVAILABLE`) and top banner.
+- `app/sim_ui/common.py` — Shared caching for models, meal catalogue, bio data, and multi-day simulations (`run_simulation_cached`).
+- `tests/test_workspace.py` — Automated integration tests using Streamlit's `AppTest` framework verifying clean startup, banner presence, navigation across all three sections, tab rendering, risk scoring, what-if calculations, and `NOT AVAILABLE` badge enforcement on real reference patients.
+- `tests/conftest.py` — Headless `Agg` backend configuration for Matplotlib.
+
+---
+
+## Part 6: (not started)
+
 
 
 
