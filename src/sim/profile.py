@@ -17,6 +17,12 @@ from src.sim.assumptions import (
     T2D_VARIANTS,
     UNLOGGED_SNACK_PROB_PER_EPOCH,
     DEFAULT_MEAL_TIMES,
+    SENSOR_BASELINE_FROM_FASTING_INTERCEPT,
+    SENSOR_BASELINE_FROM_FASTING_SLOPE,
+    SENSOR_BASELINE_FROM_HBA1C_INTERCEPT,
+    SENSOR_BASELINE_FROM_HBA1C_SLOPE,
+    LAB_FASTING_GLUCOSE_INTERCEPT,
+    LAB_FASTING_GLUCOSE_HBA1C_SLOPE,
     FASTING_GLUCOSE_INTERCEPT,
     FASTING_GLUCOSE_HBA1C_SLOPE,
     FASTING_GLUCOSE_IR_ADDER_PER_UNIT,
@@ -149,20 +155,30 @@ class VirtualPatient:
         return max(ir, 0.5)  # floor to avoid negative/zero
 
     @property
-    def effective_fasting_glucose(self) -> float:
+    def displayed_fasting_glucose(self) -> float:
         """
-        Overnight baseline glucose (mg/dL).
-        Anchored to patient's entered laboratory fasting glucose (self.fasting_glucose).
-        If not entered (or 0), derived from HbA1c using the empirical regression fitted
-        to real CGMacros laboratory data (docs/real_glucose_reference.md):
-        fasting_glu = FASTING_GLUCOSE_INTERCEPT + FASTING_GLUCOSE_HBA1C_SLOPE * HbA1c
-        (-57.91 + 29.17 * HbA1c).
-        Plus additive physiological adjustments for insulin resistance excess and medication.
+        Displayed lab fasting glucose (venous, entered or derived).
+        If entered, returns entered fasting_glucose.
+        If not entered, derived from HbA1c via real CGMacros venous lab regression:
+        -57.91 + 29.17 * HbA1c (Regression 4 in docs/real_glucose_reference.md).
         """
         if self.fasting_glucose is not None and self.fasting_glucose > 0:
-            fg = float(self.fasting_glucose)
+            return float(self.fasting_glucose)
+        return round(LAB_FASTING_GLUCOSE_INTERCEPT + LAB_FASTING_GLUCOSE_HBA1C_SLOPE * self.hba1c, 1)
+
+    @property
+    def effective_fasting_glucose(self) -> float:
+        """
+        Overnight sensor baseline glucose (mg/dL) mimicking FreeStyle Libre interstitial sensor.
+        Anchored to real CGMacros Libre regressions (docs/real_glucose_reference.md):
+        - If lab fasting glucose is entered: 4.57 + 0.77 * fasting_glucose (Regression 2)
+        - If not entered: -43.30 + 22.99 * HbA1c (Regression 3)
+        Plus documented physiological adjustments (insulin resistance excess, medication).
+        """
+        if self.fasting_glucose is not None and self.fasting_glucose > 0:
+            fg = SENSOR_BASELINE_FROM_FASTING_INTERCEPT + SENSOR_BASELINE_FROM_FASTING_SLOPE * float(self.fasting_glucose)
         else:
-            fg = FASTING_GLUCOSE_INTERCEPT + FASTING_GLUCOSE_HBA1C_SLOPE * self.hba1c
+            fg = SENSOR_BASELINE_FROM_HBA1C_INTERCEPT + SENSOR_BASELINE_FROM_HBA1C_SLOPE * self.hba1c
         fg += FASTING_GLUCOSE_IR_ADDER_PER_UNIT * max(0, self.insulin_resistance - 1.0)
         if "metformin" in [m.lower() for m in self.medications]:
             fg -= METFORMIN_FASTING_REDUCTION

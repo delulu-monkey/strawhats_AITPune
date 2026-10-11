@@ -9,17 +9,31 @@ Change any value here and rerun the simulation; nothing else needs editing.
 """
 
 # ---------------------------------------------------------------------------
-# Fasting glucose model
+# Overnight sensor baseline models (FreeStyle Libre-style interstitial sensor)
 # ---------------------------------------------------------------------------
 
-# Fasting glucose fallback model when no laboratory fasting value is entered.
-# Derived from empirical linear regression of real CGMacros laboratory venous fasting glucose
-# against HbA1c from bio.csv (see docs/real_glucose_reference.md):
-# fasting_glu = -57.91 + 29.17 * HbA1c (R² = 0.768, residual SD = 14.57 mg/dL).
-FASTING_GLUCOSE_INTERCEPT = -57.91  # mg/dL, empirically fitted from real CGMacros bio.csv labs — see docs/real_glucose_reference.md
+# Regression 2 (docs/real_glucose_reference.md):
+# Overnight sensor baseline derived from entered laboratory venous fasting glucose:
+# overnight_sensor = 4.57 + 0.77 * lab_fasting_glucose (R² = 0.685, residual SD = 15.79 mg/dL).
+SENSOR_BASELINE_FROM_FASTING_INTERCEPT = 4.57  # mg/dL, empirically fitted from real CGMacros data — see docs/real_glucose_reference.md
+SENSOR_BASELINE_FROM_FASTING_SLOPE = 0.77      # slope against venous plasma lab fasting glucose — see docs/real_glucose_reference.md
 
-# Each 1 % increase in HbA1c adds this many mg/dL to baseline fasting glucose.
-FASTING_GLUCOSE_HBA1C_SLOPE = 29.17  # mg/dL per %, empirically fitted from real CGMacros bio.csv labs — see docs/real_glucose_reference.md
+# Regression 3 (docs/real_glucose_reference.md):
+# Overnight sensor baseline derived from HbA1c when no lab fasting glucose is entered:
+# overnight_sensor = -43.30 + 22.99 * HbA1c (R² = 0.551, residual SD = 18.84 mg/dL).
+SENSOR_BASELINE_FROM_HBA1C_INTERCEPT = -43.30  # mg/dL, empirically fitted from real CGMacros data — see docs/real_glucose_reference.md
+SENSOR_BASELINE_FROM_HBA1C_SLOPE = 22.99       # mg/dL per % HbA1c — see docs/real_glucose_reference.md
+
+# Regression 4 (docs/real_glucose_reference.md):
+# Displayed venous lab fasting glucose derived from HbA1c when none is entered:
+# lab_fasting_glu = -57.91 + 29.17 * HbA1c (R² = 0.768, residual SD = 14.57 mg/dL).
+# Note: Used ONLY for deriving displayed lab fasting value in UI, NOT for simulator baseline!
+LAB_FASTING_GLUCOSE_INTERCEPT = -57.91         # mg/dL, venous lab regression — see docs/real_glucose_reference.md
+LAB_FASTING_GLUCOSE_HBA1C_SLOPE = 29.17        # mg/dL per % HbA1c — see docs/real_glucose_reference.md
+
+# Aliases for backwards compatibility:
+FASTING_GLUCOSE_INTERCEPT = SENSOR_BASELINE_FROM_HBA1C_INTERCEPT
+FASTING_GLUCOSE_HBA1C_SLOPE = SENSOR_BASELINE_FROM_HBA1C_SLOPE
 
 # IR adder: each unit of IR above 1.0 adds this many mg/dL to fasting.
 # Keeps fasting glucose linear rather than explosive at high IR.

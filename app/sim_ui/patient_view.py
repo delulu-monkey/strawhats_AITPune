@@ -116,7 +116,7 @@ def render_patient_view() -> None:
                         Height {patient.height_cm:.0f} cm · Weight {patient.weight_kg:.1f} kg ·
                         <strong>BMI {patient.bmi:.1f} kg/m²</strong> ·
                         <strong>HbA1c {patient.hba1c:.1f}%</strong> ·
-                        Fasting Glu {patient.fasting_glucose:.0f} mg/dL · Seed: <span style="color: {TEXT_SECONDARY};">{patient.seed}</span>
+                        Fasting Glu {patient.displayed_fasting_glucose:.0f} mg/dL · Seed: <span style="color: {TEXT_SECONDARY};">{patient.seed}</span>
                     </div>
                     <div style="font-size: 12px; color: {TEXT_MAIN}; margin-top: 4px; font-weight: 500;">
                         Clinical summary: {patient.description or 'Synthetic patient persona.'}
@@ -307,6 +307,7 @@ def render_patient_view() -> None:
     fig_cgm.autofmt_xdate()
     st.pyplot(fig_cgm)
     plt.close(fig_cgm)
+    st.caption("Simulated values mimic a FreeStyle Libre-type sensor, which reads lower than a venous lab test overnight, as in the real CGMacros data.")
 
     st.divider()
 
@@ -324,7 +325,7 @@ def render_patient_view() -> None:
 
     # Left: Sleep Stage Hypnogram
     with grid_c1:
-        st.markdown(f"**Sleep Architecture (Hypnogram)** {badge_html('SIMULATED')}")
+        st.markdown(f"**Sleep Architecture (Hypnogram)** {badge_html('SIMULATED')}", unsafe_allow_html=True)
         stage_map = {"awake": 3, "rem": 2, "light": 1, "deep": 0}
         day_cgm["stage_num"] = day_cgm["sleep_stage"].map(stage_map)
 
@@ -340,7 +341,7 @@ def render_patient_view() -> None:
 
     # Right: Steps & Physical Activity
     with grid_c2:
-        st.markdown(f"**Physical Activity & Steps** {badge_html('SIMULATED')}")
+        st.markdown(f"**Physical Activity & Steps** {badge_html('SIMULATED')}", unsafe_allow_html=True)
         fig_st, ax_st = plt.subplots(figsize=(6, 2.5))
         ax_st.bar(day_cgm["time"], day_cgm["steps"], width=0.003, color=CHART_STEPS, alpha=0.8)
         ax_st.set_ylabel("Steps / 5m", fontsize=8)
@@ -382,7 +383,14 @@ def render_patient_view() -> None:
     ])
 
     with t_prof:
-        st.markdown(f"#### Demographics and Laboratory Panel {badge_html('SIMULATED')}")
+        st.markdown(
+            f"""
+            <div style="font-size: 15px; font-weight: 700; color: {PRIMARY_DARK}; margin: 8px 0 6px 0;">
+                Demographics and Laboratory Panel {badge_html('SIMULATED')}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Age", f"{patient.age} yrs")
         c2.metric("Sex", "Male" if patient.sex == "M" else "Female")
@@ -391,8 +399,8 @@ def render_patient_view() -> None:
 
         g1, g2, g3, g4 = st.columns(4)
         g1.metric("HbA1c", f"{patient.hba1c:.1f}%")
-        g2.metric("Lab Value (entered)", f"{patient.fasting_glucose:.0f} mg/dL")
-        g3.metric("Simulated Overnight Baseline", f"{patient.effective_fasting_glucose:.0f} mg/dL")
+        g2.metric("Lab fasting glucose (venous, entered)", f"{patient.displayed_fasting_glucose:.0f} mg/dL")
+        g3.metric("Simulated overnight sensor baseline (Libre-style)", f"{patient.effective_fasting_glucose:.0f} mg/dL")
         g4.metric("Fasting Insulin", f"{patient.insulin:.1f} μU/mL")
 
         st.divider()
@@ -404,8 +412,8 @@ def render_patient_view() -> None:
             {"Parameter": "Weight", "Value": f"{patient.weight_kg:.1f}", "Unit": "kg", "Provenance": "SIMULATED", "Notes": "Physical measurement"},
             {"Parameter": "Body Mass Index (BMI)", "Value": f"{patient.bmi:.1f}", "Unit": "kg/m²", "Provenance": "SIMULATED", "Notes": f"Target: 18.5–24.9"},
             {"Parameter": "HbA1c", "Value": f"{patient.hba1c:.1f}", "Unit": "%", "Provenance": "SIMULATED", "Notes": "Glycated hemoglobin (PDL standard)"},
-            {"Parameter": "Fasting Glucose (lab value entered)", "Value": f"{patient.fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Entered laboratory fasting glucose"},
-            {"Parameter": "Simulated Overnight Baseline", "Value": f"{patient.effective_fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Simulator overnight baseline (modelled with IR & medications)"},
+            {"Parameter": "Lab fasting glucose (venous, entered)", "Value": f"{patient.displayed_fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Entered laboratory fasting glucose (or derived from HbA1c)"},
+            {"Parameter": "Simulated overnight sensor baseline (Libre-style)", "Value": f"{patient.effective_fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Simulator overnight sensor baseline (Libre-style, modeled with IR & medications)"},
             {"Parameter": "Fasting Insulin", "Value": f"{patient.insulin:.1f}", "Unit": "μU/mL", "Provenance": "SIMULATED", "Notes": "Endogenous insulin concentration"},
             {"Parameter": "Modelled IR Index", "Value": f"{patient.insulin_resistance:.2f}", "Unit": "ratio", "Provenance": "SIMULATED", "Notes": "1.0 = healthy baseline sensitivity"},
             {"Parameter": "Triglycerides", "Value": f"{patient.triglycerides:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Lipid profile (Normal < 150)"},
@@ -418,14 +426,14 @@ def render_patient_view() -> None:
     with t_meds:
         col_d, col_m = st.columns(2)
         with col_d:
-            st.markdown(f"##### Chronic Diagnoses {badge_html(prov_map.get('diagnoses', 'SIMULATED'))}")
+            st.markdown(f"##### Chronic Diagnoses {badge_html(prov_map.get('diagnoses', 'SIMULATED'))}", unsafe_allow_html=True)
             if patient.diagnoses:
                 for d in patient.diagnoses:
                     st.markdown(f"- **{d}**")
             else:
                 st.info("No recorded diagnoses.")
         with col_m:
-            st.markdown(f"##### Active Pharmacotherapy {badge_html(prov_map.get('medications', 'SIMULATED'))}")
+            st.markdown(f"##### Active Pharmacotherapy {badge_html(prov_map.get('medications', 'SIMULATED'))}", unsafe_allow_html=True)
             if patient.medications:
                 for m in patient.medications:
                     st.markdown(f"- **{m}**")
@@ -433,7 +441,7 @@ def render_patient_view() -> None:
                 st.info("No active medications.")
 
     with t_gen:
-        st.markdown(f"##### Genetic Markers & Polygenic Risk {badge_html('SIMULATED')}")
+        st.markdown(f"##### Genetic Markers & Polygenic Risk {badge_html('SIMULATED')}", unsafe_allow_html=True)
         gm1, gm2 = st.columns([1, 2])
         gm1.metric("Composite Risk Score", f"{patient.genetic_markers.genetic_risk_score:.1f} / 100")
         gm2.progress(patient.genetic_markers.genetic_risk_score / 100.0)
@@ -456,7 +464,7 @@ def render_patient_view() -> None:
         st.dataframe(pd.DataFrame(v_rows), use_container_width=True, hide_index=True)
 
     with t_meals:
-        st.markdown(f"##### Logged Dietary Intake (7 Days) {badge_html('SIMULATED')}")
+        st.markdown(f"##### Logged Dietary Intake (7 Days) {badge_html('SIMULATED')}", unsafe_allow_html=True)
         meals_df = gdf[gdf["carbs"] > 0][["time", "meal_name", "carbs", "protein", "fat", "fiber", "act_kcal"]].copy()
         if not meals_df.empty:
             meals_df["time"] = meals_df["time"].dt.strftime("%Y-%m-%d %H:%M")
@@ -475,7 +483,7 @@ def render_patient_view() -> None:
             st.info("No meals recorded.")
 
     with t_whatif:
-        st.markdown(f"##### Meal What-If: Postprandial Response Simulation {badge_html('SIMULATED')}")
+        st.markdown(f"##### Meal What-If: Postprandial Response Simulation {badge_html('SIMULATED')}", unsafe_allow_html=True)
         st.caption("Predicts peak glucose excursion within 2 hours if this meal is ingested at the current evaluation moment.")
         food_catalogue = load_indian_meals()
         chosen_dishes = st.multiselect("Select Dishes from Catalogue", food_catalogue["dish"].tolist())

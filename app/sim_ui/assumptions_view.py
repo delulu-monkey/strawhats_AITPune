@@ -19,10 +19,14 @@ from app.sim_ui.badges import badge_html
 
 ASSUMPTION_CATEGORIES = [
     {
-        "category": "Fasting Glucose Model",
+        "category": "Fasting Glucose Model (Overnight Sensor Baseline, FreeStyle Libre-Style)",
         "parameters": [
-            ("FASTING_GLUCOSE_INTERCEPT", -57.91, "mg/dL", "Empirically fitted from real CGMacros bio.csv lab venous fasting glucose against HbA1c (see docs/real_glucose_reference.md); fallback when lab fasting glucose is not entered"),
-            ("FASTING_GLUCOSE_HBA1C_SLOPE", 29.17, "mg/dL per %", "Empirically fitted regression slope from real CGMacros bio.csv labs (see docs/real_glucose_reference.md); fallback when lab fasting glucose is not entered"),
+            ("SENSOR_BASELINE_FROM_FASTING_INTERCEPT", 4.57, "mg/dL", "Empirically fitted from real CGMacros Libre data (Regression 2 in docs/real_glucose_reference.md); overnight sensor baseline from entered lab fasting glucose: 4.57 + 0.77 * fasting_glucose"),
+            ("SENSOR_BASELINE_FROM_FASTING_SLOPE", 0.77, "slope", "Empirically fitted regression slope from real CGMacros data (Regression 2 in docs/real_glucose_reference.md); Libre sensor reads ~77% of venous fasting"),
+            ("SENSOR_BASELINE_FROM_HBA1C_INTERCEPT", -43.30, "mg/dL", "Empirically fitted fallback regression from real CGMacros Libre data (Regression 3 in docs/real_glucose_reference.md); overnight sensor baseline from HbA1c: -43.30 + 22.99 * HbA1c"),
+            ("SENSOR_BASELINE_FROM_HBA1C_SLOPE", 22.99, "mg/dL per %", "Empirically fitted regression slope from real CGMacros Libre data (Regression 3 in docs/real_glucose_reference.md)"),
+            ("LAB_FASTING_GLUCOSE_INTERCEPT", -57.91, "mg/dL", "Empirically fitted venous lab regression from bio.csv (Regression 4 in docs/real_glucose_reference.md); used only for displayed lab fasting value when none is entered: -57.91 + 29.17 * HbA1c"),
+            ("LAB_FASTING_GLUCOSE_HBA1C_SLOPE", 29.17, "mg/dL per %", "Empirically fitted venous lab slope from bio.csv (Regression 4 in docs/real_glucose_reference.md)"),
             ("FASTING_GLUCOSE_IR_ADDER_PER_UNIT", 6.0, "mg/dL per IR unit", "Keeps fasting glucose linear rather than explosive at high IR (assumption, not learned from data)"),
         ],
     },
@@ -104,10 +108,12 @@ def render_assumptions_view() -> None:
         "not certified clinical accuracy. All models and scenarios are research prototypes for simulated or "
         "anonymised patients only.\n\n"
         "**Transparency Guarantee for Judges and Clinicians:** Every constant below is defined in "
-        "`src/sim/assumptions.py`. Overnight baseline is anchored directly to the patient's entered laboratory "
-        "fasting glucose when provided, or derived via empirical regression on real CGMacros laboratory data "
-        "(`docs/real_glucose_reference.md`) when omitted. Sensor AR(1) autocorrelation (0.97) and innovation noise (3.3 mg/dL) "
-        "are calibrated to real within-person 5-minute FreeStyle Libre dynamics. All remaining effect sizes are explicit "
+        "`src/sim/assumptions.py`. Overnight baseline reproduces FreeStyle Libre-type sensor dynamics, "
+        "anchored directly to real CGMacros Libre regressions (`docs/real_glucose_reference.md`): derived from entered "
+        "laboratory fasting glucose via `4.57 + 0.77 * fasting_glucose` (Regression 2), or from HbA1c via "
+        "`-43.30 + 22.99 * HbA1c` (Regression 3) when omitted. Displayed venous lab fasting values are derived via "
+        "`-57.91 + 29.17 * HbA1c` (Regression 4) when omitted. Sensor AR(1) autocorrelation (0.97) and innovation noise "
+        "(3.3 mg/dL) match real within-person 5-minute FreeStyle Libre dynamics. All remaining effect sizes are explicit "
         "physiological assumptions with rationale documented below and evaluated in `sim_fidelity.md`."
     )
 
