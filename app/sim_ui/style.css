@@ -181,8 +181,68 @@ div[data-testid="stSidebarHeader"] {
   font-weight: 700 !important;
 }
 
-[data-testid="stSidebar"] div[data-baseweb="radio"] div[aria-checked="true"] {
+/* ─── Navigation Radio Dots: unselected = white circle with grey border #B8C4D6, selected = blue dot #1D5FD1 ─── */
+/* Outer radio circle for UNSELECTED */
+div[data-testid="stRadio"] div[class*="e1dm8mpf4"],
+div[data-baseweb="radio"] div[class*="e1dm8mpf4"],
+div[data-testid="stRadio"] div[data-baseweb="radio"] > div:first-child,
+div[data-testid="stRadio"] label div[class*="e1dm8mpf4"] {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid #B8C4D6 !important;
+  background-color: #FFFFFF !important;
+  background: #FFFFFF !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  margin-right: 8px !important;
+  transition: all 0.15s ease !important;
+}
+
+/* Inner dot for UNSELECTED (transparent) */
+div[data-testid="stRadio"] div[class*="e1dm8mpf4"] div[class*="e1dm8mpf5"],
+div[data-baseweb="radio"] div[class*="e1dm8mpf4"] div[class*="e1dm8mpf5"],
+div[data-testid="stRadio"] div[data-baseweb="radio"] > div:first-child > div {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  transition: all 0.15s ease !important;
+}
+
+/* Outer radio circle for SELECTED */
+div[data-testid="stRadio"] label:has(input:checked) div[class*="e1dm8mpf4"],
+div[data-testid="stRadio"] label[data-selected="true"] div[class*="e1dm8mpf4"],
+div[data-baseweb="radio"]:has(input:checked) div[class*="e1dm8mpf4"],
+div[data-baseweb="radio"] label[data-selected="true"] div[class*="e1dm8mpf4"],
+div[data-baseweb="radio"] div[aria-checked="true"],
+div[data-baseweb="radio"]:has(input:checked) > div:first-child {
+  border: 1.5px solid var(--tw-primary) !important;
+  border-color: var(--tw-primary) !important;
+  background-color: #FFFFFF !important;
+  background: #FFFFFF !important;
+}
+
+/* Inner dot for SELECTED: solid blue #1D5FD1 */
+div[data-testid="stRadio"] label:has(input:checked) div[class*="e1dm8mpf4"] div[class*="e1dm8mpf5"],
+div[data-testid="stRadio"] label[data-selected="true"] div[class*="e1dm8mpf4"] div[class*="e1dm8mpf5"],
+div[data-baseweb="radio"]:has(input:checked) div[class*="e1dm8mpf4"] div[class*="e1dm8mpf5"],
+div[data-baseweb="radio"] label[data-selected="true"] div[class*="e1dm8mpf4"] div[class*="e1dm8mpf5"],
+div[data-baseweb="radio"] div[aria-checked="true"] > div,
+div[data-baseweb="radio"]:has(input:checked) > div:first-child > div {
   background-color: var(--tw-primary) !important;
+  background: var(--tw-primary) !important;
+  border-radius: 50% !important;
+}
+
+input[type="radio"] {
+  accent-color: var(--tw-primary) !important;
 }
 
 /* ─── Headings ─── */
@@ -228,12 +288,14 @@ div[data-testid="stMetricValue"] div {
 }
 
 /* ─── Tabs ─── */
-div[data-baseweb="tab-list"] {
+div[data-baseweb="tab-list"],
+div[role="tablist"] {
   border-bottom: 1px solid var(--tw-border) !important;
   gap: 4px !important;
 }
 
-button[data-baseweb="tab"] {
+button[data-baseweb="tab"],
+button[role="tab"] {
   background-color: transparent !important;
   color: var(--tw-text-secondary) !important;
   border-bottom: 2px solid transparent !important;
@@ -243,16 +305,37 @@ button[data-baseweb="tab"] {
   transition: all 0.15s ease !important;
 }
 
-button[data-baseweb="tab"]:hover {
+button[data-baseweb="tab"]:hover,
+button[role="tab"]:hover {
   color: var(--tw-primary) !important;
   background-color: var(--tw-primary-tint) !important;
   border-radius: 4px 4px 0 0 !important;
 }
 
-button[data-baseweb="tab"][aria-selected="true"] {
+button[data-baseweb="tab"][aria-selected="true"],
+button[role="tab"][aria-selected="true"],
+button[data-baseweb="tab"][data-selected="true"] {
   color: var(--tw-primary) !important;
   border-bottom: 2px solid var(--tw-primary) !important;
   font-weight: 600 !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] p,
+button[data-baseweb="tab"][aria-selected="true"] div,
+button[data-baseweb="tab"][aria-selected="true"] span,
+button[role="tab"][aria-selected="true"] p,
+button[role="tab"][aria-selected="true"] div {
+  color: var(--tw-primary) !important;
+  font-weight: 600 !important;
+}
+
+/* Streamlit BaseWeb animated tab highlight underline: #1D5FD1 */
+div[data-baseweb="tab-highlight"],
+div[role="tablist"] div[class*="e1v82n2b"],
+div[role="tablist"] hr {
+  background-color: var(--tw-primary) !important;
+  border-color: var(--tw-primary) !important;
+  height: 2px !important;
 }
 
 /* ─── Buttons ─── */
@@ -358,7 +441,7 @@ input[type="number"] {
   -moz-appearance: textfield !important;
 }
 
-/* Selectbox: modern React-Aria and BaseWeb */
+/* Selectbox: modern React-Aria and BaseWeb closed state */
 div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
 div[data-baseweb="select"] > div,
 div[data-baseweb="select"] div[aria-expanded],
@@ -369,6 +452,17 @@ div[data-testid="stSelectbox"] div[role="combobox"] {
   border: 1px solid var(--tw-border) !important;
   border-radius: var(--tw-radius-btn) !important;
   color: var(--tw-text-main) !important;
+}
+
+div[data-testid="stSelectbox"] input,
+div[data-baseweb="select"] input,
+div[data-testid="stSelectbox"] div[role="combobox"],
+div[data-testid="stSelectbox"] input[role="combobox"] {
+  color: var(--tw-text-main) !important;
+  -webkit-text-fill-color: var(--tw-text-main) !important;
+  font-family: var(--tw-font) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
 }
 
 div[data-baseweb="select"] span,
@@ -394,21 +488,150 @@ div[data-testid="stSelectbox"] svg path[fill="none"] {
   fill: none !important;
 }
 
-/* Dropdown popover menu options */
+/* Placeholder inside inputs and selectboxes */
+div[data-testid="stSelectbox"] input::placeholder,
+div[data-testid="stTextInput"] input::placeholder,
+div[data-testid="stNumberInput"] input::placeholder,
+div[data-baseweb="input"] input::placeholder,
+input::placeholder {
+  color: var(--tw-text-secondary) !important;
+  -webkit-text-fill-color: var(--tw-text-secondary) !important;
+  opacity: 1 !important;
+}
+
+/* ─── Dropdown Popover Menu & Portal Layer (Global Top-Level) ─── */
 div[data-baseweb="popover"],
 div[data-baseweb="menu"],
+div[data-testid="stSelectboxVirtualDropdown"],
+div[data-rac][data-trigger="ComboBox"],
 ul[data-testid="stSelectboxVirtualDropdown"],
 div[role="listbox"],
-ul[role="listbox"],
-li[role="option"] {
+ul[role="listbox"] {
   background-color: #FFFFFF !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--tw-border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 16px rgba(15, 27, 45, 0.10) !important;
+  color: var(--tw-text-main) !important;
+  color-scheme: light !important;
+}
+
+div[data-testid="stSelectboxVirtualDropdown"] > div,
+div[data-testid="stSelectboxVirtualDropdown"] ul,
+div[data-baseweb="popover"] > div,
+div[data-baseweb="menu"] > ul {
+  background-color: #FFFFFF !important;
+  background: #FFFFFF !important;
+  color: var(--tw-text-main) !important;
+  border: none !important;
+}
+
+/* Dropdown list items / options */
+li[role="option"],
+div[role="option"] {
+  color: var(--tw-text-main) !important;
+  font-family: var(--tw-font) !important;
+  font-size: 14px !important;
+  padding: 8px 12px !important;
+  background-color: #FFFFFF !important;
+  background: #FFFFFF !important;
+  cursor: pointer !important;
+  transition: all 0.12s ease !important;
+}
+
+li[role="option"] *,
+div[role="option"] * {
+  color: inherit !important;
+  font-size: 14px !important;
+}
+
+/* Hover and active/selected states */
+li[role="option"]:hover,
+li[role="option"][aria-selected="true"],
+li[role="option"][data-selected="true"],
+li[role="option"][data-focused="true"],
+li[role="option"]:focus,
+div[role="option"]:hover,
+div[role="option"][aria-selected="true"],
+div[role="option"][data-selected="true"],
+div[role="option"][data-focused="true"] {
+  background-color: var(--tw-primary-tint) !important;
+  background: var(--tw-primary-tint) !important;
+  color: var(--tw-primary-dark) !important;
+  font-weight: 600 !important;
+}
+
+li[role="option"]:hover *,
+li[role="option"][aria-selected="true"] *,
+li[role="option"][data-selected="true"] *,
+li[role="option"][data-focused="true"] * {
+  color: var(--tw-primary-dark) !important;
+}
+
+/* Multiselect tags */
+div[data-baseweb="tag"],
+span[data-baseweb="tag"],
+div[data-testid="stMultiSelect"] span[data-baseweb="tag"] {
+  background-color: var(--tw-primary-tint) !important;
+  color: var(--tw-primary-dark) !important;
+  border: 1px solid var(--tw-badge-sim-border) !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+div[data-baseweb="tag"] span,
+span[data-baseweb="tag"] span {
+  color: var(--tw-primary-dark) !important;
+}
+
+div[data-baseweb="tag"] svg,
+span[data-baseweb="tag"] svg {
+  color: var(--tw-primary-dark) !important;
+  fill: var(--tw-primary-dark) !important;
+}
+
+/* Date Picker popup & Calendar */
+div[data-baseweb="calendar"],
+div[data-testid="stDateInput"] div[data-baseweb="popover"],
+div[data-testid="stDateInput"] div[data-baseweb="calendar"] {
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--tw-border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 16px rgba(15, 27, 45, 0.10) !important;
   color: var(--tw-text-main) !important;
 }
 
-li[role="option"]:hover,
-li[role="option"][aria-selected="true"] {
+div[data-baseweb="calendar"] * {
+  color: var(--tw-text-main) !important;
+  font-family: var(--tw-font) !important;
+}
+
+div[data-baseweb="calendar"] button {
+  color: var(--tw-text-main) !important;
+}
+
+/* Selected calendar day: #1D5FD1 with white text */
+div[data-baseweb="calendar"] button[aria-selected="true"],
+div[data-baseweb="calendar"] div[aria-selected="true"],
+div[aria-roledescription="calendar"] button[aria-selected="true"],
+div[aria-roledescription="calendar"] div[aria-selected="true"] {
+  background-color: var(--tw-primary) !important;
+  background: var(--tw-primary) !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  border-radius: 50% !important;
+}
+
+div[data-baseweb="calendar"] button[aria-selected="true"] *,
+div[data-baseweb="calendar"] div[aria-selected="true"] * {
+  color: #FFFFFF !important;
+}
+
+/* Hovered calendar day */
+div[data-baseweb="calendar"] button:hover {
   background-color: var(--tw-primary-tint) !important;
-  color: var(--tw-primary) !important;
+  color: var(--tw-primary-dark) !important;
 }
 
 /* ─── Slider Styling: clinical white/blue ─── */
@@ -660,8 +883,32 @@ hr {
   flex-direction: column;
   gap: 6px;
   font-size: var(--tw-size-label);
-  color: var(--tw-text-secondary);
+  color: var(--tw-text-secondary) !important;
   padding: 4px 0;
+}
+
+.prov-key div {
+  color: var(--tw-text-secondary) !important;
+}
+
+/* Captions and disabled items contrast guarantee */
+.stCaption,
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p,
+[data-testid="stSidebar"] .stCaption,
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+  color: var(--tw-text-secondary) !important;
+  opacity: 1 !important;
+}
+
+:disabled,
+[disabled],
+input:disabled,
+button:disabled {
+  color: var(--tw-text-secondary) !important;
+  -webkit-text-fill-color: var(--tw-text-secondary) !important;
+  opacity: 0.85 !important;
+  cursor: not-allowed !important;
 }
 
 /* ─── Risk Panel Classes ─── */
