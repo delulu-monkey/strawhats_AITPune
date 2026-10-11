@@ -391,8 +391,8 @@ def render_patient_view() -> None:
 
         g1, g2, g3, g4 = st.columns(4)
         g1.metric("HbA1c", f"{patient.hba1c:.1f}%")
-        g2.metric("Fasting Glucose", f"{patient.fasting_glucose:.0f} mg/dL")
-        g3.metric("Effective Fasting Glucose", f"{patient.effective_fasting_glucose:.0f} mg/dL")
+        g2.metric("Lab Value (entered)", f"{patient.fasting_glucose:.0f} mg/dL")
+        g3.metric("Simulated Overnight Baseline", f"{patient.effective_fasting_glucose:.0f} mg/dL")
         g4.metric("Fasting Insulin", f"{patient.insulin:.1f} μU/mL")
 
         st.divider()
@@ -404,8 +404,8 @@ def render_patient_view() -> None:
             {"Parameter": "Weight", "Value": f"{patient.weight_kg:.1f}", "Unit": "kg", "Provenance": "SIMULATED", "Notes": "Physical measurement"},
             {"Parameter": "Body Mass Index (BMI)", "Value": f"{patient.bmi:.1f}", "Unit": "kg/m²", "Provenance": "SIMULATED", "Notes": f"Target: 18.5–24.9"},
             {"Parameter": "HbA1c", "Value": f"{patient.hba1c:.1f}", "Unit": "%", "Provenance": "SIMULATED", "Notes": "Glycated hemoglobin (PDL standard)"},
-            {"Parameter": "Fasting Glucose", "Value": f"{patient.fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Overnight laboratory fasting"},
-            {"Parameter": "Effective Fasting Glucose", "Value": f"{patient.effective_fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Modelled with IR & medications"},
+            {"Parameter": "Fasting Glucose (lab value entered)", "Value": f"{patient.fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Entered laboratory fasting glucose"},
+            {"Parameter": "Simulated Overnight Baseline", "Value": f"{patient.effective_fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Simulator overnight baseline (modelled with IR & medications)"},
             {"Parameter": "Fasting Insulin", "Value": f"{patient.insulin:.1f}", "Unit": "μU/mL", "Provenance": "SIMULATED", "Notes": "Endogenous insulin concentration"},
             {"Parameter": "Modelled IR Index", "Value": f"{patient.insulin_resistance:.2f}", "Unit": "ratio", "Provenance": "SIMULATED", "Notes": "1.0 = healthy baseline sensitivity"},
             {"Parameter": "Triglycerides", "Value": f"{patient.triglycerides:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Lipid profile (Normal < 150)"},

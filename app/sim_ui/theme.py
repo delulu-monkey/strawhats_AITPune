@@ -292,7 +292,7 @@ def render_patient_body_overview(
             hrv_sub = "RMSSD"
         else:
             glu_val = f"{patient.fasting_glucose:.0f}"
-            glu_sub = f"Eff. fasting {patient.effective_fasting_glucose:.0f}"
+            glu_sub = f"Sim. baseline {patient.effective_fasting_glucose:.0f}"
             glu_series = [patient.fasting_glucose] * 12
             hr_val = "74"
             hr_sub = "Baseline"

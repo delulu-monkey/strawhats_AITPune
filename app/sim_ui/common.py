@@ -71,6 +71,8 @@ def load_real_bio_data() -> pd.DataFrame:
         "Cho/HDL Ratio": "cho_hdl_ratio",
     }
     df = df.rename(columns=rename_map)
+    if "bmi" in df.columns:
+        df["bmi"] = df["bmi"].round(1)
     df["subject_str"] = df["subject"].apply(lambda s: f"CGMacros-{int(s):03d}")
     df["group"] = pd.cut(
         df["hba1c"],

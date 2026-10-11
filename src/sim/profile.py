@@ -97,7 +97,7 @@ class VirtualPatient:
 
     # Labs
     hba1c: float = 5.7
-    fasting_glucose: float = 100.0  # mg/dL — if not set, derived from hba1c
+    fasting_glucose: Optional[float] = None  # mg/dL — if not set, derived from hba1c via real empirical regression
     insulin: float = 10.0           # μU/mL
     triglycerides: float = 130.0    # mg/dL
     total_cholesterol: float = 200.0
@@ -151,14 +151,22 @@ class VirtualPatient:
     @property
     def effective_fasting_glucose(self) -> float:
         """
-        Estimated fasting glucose (mg/dL) from HbA1c (ADAG) plus
-        an additive IR adjustment, with optional metformin reduction.
+        Overnight baseline glucose (mg/dL).
+        Anchored to patient's entered laboratory fasting glucose (self.fasting_glucose).
+        If not entered (or 0), derived from HbA1c using the empirical regression fitted
+        to real CGMacros laboratory data (docs/real_glucose_reference.md):
+        fasting_glu = FASTING_GLUCOSE_INTERCEPT + FASTING_GLUCOSE_HBA1C_SLOPE * HbA1c
+        (-57.91 + 29.17 * HbA1c).
+        Plus additive physiological adjustments for insulin resistance excess and medication.
         """
-        fg = FASTING_GLUCOSE_INTERCEPT + FASTING_GLUCOSE_HBA1C_SLOPE * self.hba1c
+        if self.fasting_glucose is not None and self.fasting_glucose > 0:
+            fg = float(self.fasting_glucose)
+        else:
+            fg = FASTING_GLUCOSE_INTERCEPT + FASTING_GLUCOSE_HBA1C_SLOPE * self.hba1c
         fg += FASTING_GLUCOSE_IR_ADDER_PER_UNIT * max(0, self.insulin_resistance - 1.0)
         if "metformin" in [m.lower() for m in self.medications]:
             fg -= METFORMIN_FASTING_REDUCTION
-        return max(fg, 50.0)
+        return max(fg, 40.0)
 
     # ── Validation ────────────────────────────────────────────────────────
 
@@ -174,7 +182,7 @@ class VirtualPatient:
             raise ValueError(f"weight_kg must be 20–300; got {self.weight_kg}")
         if not 3.0 <= self.hba1c <= 20.0:
             raise ValueError(f"hba1c must be 3.0–20.0; got {self.hba1c}")
-        if not 30 <= self.fasting_glucose <= 500:
+        if self.fasting_glucose is not None and not 30 <= self.fasting_glucose <= 500:
             raise ValueError(f"fasting_glucose must be 30–500; got {self.fasting_glucose}")
         if not 0 <= self.insulin <= 300:
             raise ValueError(f"insulin must be 0–300; got {self.insulin}")

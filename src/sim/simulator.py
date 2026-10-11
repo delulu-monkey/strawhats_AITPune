@@ -402,8 +402,9 @@ def simulate(
         noise[i] = sensor_noise
     glucose = glucose + noise
 
-    # Clamp to physiological range
-    glucose = np.clip(glucose, 40, 400)
+    # Physical sensor boundaries for Abbott FreeStyle Libre (40 to 400 mg/dL).
+    # Values are bounded to physical hardware limits; no silent truncation at higher thresholds.
+    glucose = np.clip(glucose, 40.0, 400.0)
 
     # ── Heart rate and HRV ────────────────────────────────────────────────
     resting_hr = profile.lifestyle.resting_heart_rate

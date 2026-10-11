@@ -12,14 +12,14 @@ Change any value here and rerun the simulation; nothing else needs editing.
 # Fasting glucose model
 # ---------------------------------------------------------------------------
 
-# Fasting glucose ≈ intercept + slope * HbA1c + IR adder.
-# Tuned so healthy (HbA1c ~5.2, IR ~1.0) gives fasting ~78; T2D (HbA1c ~7.2)
-# gives fasting ~130.  The ADAG formula overestimates fasting because it
-# models *average* glucose, not fasting.
-FASTING_GLUCOSE_INTERCEPT = -43.0  # mg/dL, calibrated to match real overnight mean (~75 healthy, ~99 prediabetes, ~120 T2D) — assumption, not learned from data
+# Fasting glucose fallback model when no laboratory fasting value is entered.
+# Derived from empirical linear regression of real CGMacros laboratory venous fasting glucose
+# against HbA1c from bio.csv (see docs/real_glucose_reference.md):
+# fasting_glu = -57.91 + 29.17 * HbA1c (R² = 0.768, residual SD = 14.57 mg/dL).
+FASTING_GLUCOSE_INTERCEPT = -57.91  # mg/dL, empirically fitted from real CGMacros bio.csv labs — see docs/real_glucose_reference.md
 
-# Each 1 % increase in HbA1c adds this many mg/dL to fasting glucose.
-FASTING_GLUCOSE_HBA1C_SLOPE = 22.0  # mg/dL per %, calibrated for healthy vs T2D fasting separation — assumption, not learned from data
+# Each 1 % increase in HbA1c adds this many mg/dL to baseline fasting glucose.
+FASTING_GLUCOSE_HBA1C_SLOPE = 29.17  # mg/dL per %, empirically fitted from real CGMacros bio.csv labs — see docs/real_glucose_reference.md
 
 # IR adder: each unit of IR above 1.0 adds this many mg/dL to fasting.
 # Keeps fasting glucose linear rather than explosive at high IR.
@@ -138,11 +138,13 @@ DAWN_EFFECT_MAX_MG = 9.0       # peak mg/dL rise at mid-point, calibrated to noc
 # CGM / sensor noise  (AR(1) process)
 # ---------------------------------------------------------------------------
 
-# Auto-regressive coefficient (0 = white noise, 0.9 = slowly drifting).
-SENSOR_AR1_PHI = 0.72  # CGM sensors show correlated lag errors — assumption, not learned from data
+# Auto-regressive coefficient (0 = white noise, 0.97 = realistic interstitial sensor lag).
+# Calibrated to real 5-min CGMacros Libre within-person lag-1 correlation (median phi = 0.97, IQR 0.96-0.98; see docs/real_glucose_reference.md).
+SENSOR_AR1_PHI = 0.97  # calibrated to match real CGMacros 5-min Libre autocorrelation — see docs/real_glucose_reference.md
 
 # Standard deviation of the innovation noise (mg/dL).
-SENSOR_NOISE_SD = 8.5  # calibrated to match real Libre overnight variability (15-25 mg/dL) — assumption, not learned from data
+# Calibrated to real 5-min CGMacros Libre within-person innovation SD (median = 3.3 mg/dL, IQR 2.5-4.1; see docs/real_glucose_reference.md).
+SENSOR_NOISE_SD = 3.3  # calibrated to match real CGMacros 5-min within-person innovation SD (mg/dL) — see docs/real_glucose_reference.md
 
 # ---------------------------------------------------------------------------
 # Unlogged snacks

@@ -98,7 +98,7 @@ def generate_cohort_profiles(
             height_cm=round(height, 1),
             weight_kg=round(weight, 1),
             hba1c=round(hba1c, 2),
-            fasting_glucose=100.0,  # derived via effective_fasting_glucose
+            fasting_glucose=None,  # derived via effective_fasting_glucose from hba1c
             diagnoses=diag,
             medications=meds,
             genetic_markers=GeneticMarkers(genetic_risk_score=round(grs, 1)),
