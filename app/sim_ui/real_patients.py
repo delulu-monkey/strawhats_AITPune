@@ -25,7 +25,7 @@ from app.sim_ui.badges import badge_html, label_with_badge
 from app.sim_ui.theme import (
     render_patient_body_overview,
     CHART_LINE_MAIN, CHART_THRESHOLD, CHART_HYPO, CHART_MEAL,
-    TEXT_SECONDARY,
+    TEXT_MAIN, TEXT_SECONDARY,
 )
 
 
@@ -60,7 +60,17 @@ def render_real_patients() -> None:
     healthy_cnt = (bio_df["group"] == "healthy").sum()
     prediab_cnt = (bio_df["group"] == "prediabetes").sum()
     t2d_cnt = (bio_df["group"] == "t2d").sum()
-    c2.metric("Cohort Breakdown", f"{healthy_cnt} H / {prediab_cnt} Pre / {t2d_cnt} T2D")
+    c2.markdown(
+        f"""
+        <div class="biometric-card" style="padding: 10px 14px; min-height: 82px;">
+            <div style="font-size: 12px; font-weight: 600; color: {TEXT_SECONDARY};">Cohort Breakdown</div>
+            <div style="font-size: 14px; font-weight: 700; color: {TEXT_MAIN}; margin-top: 4px; line-height: 1.4; word-break: break-word;">
+                {healthy_cnt} healthy, {prediab_cnt} prediabetes, {t2d_cnt} T2D
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     c3.markdown(
         f"<div style='padding-top: 14px;'>{badge_html('REAL')} Ground truth EHR</div>",
         unsafe_allow_html=True,
@@ -79,16 +89,22 @@ def render_real_patients() -> None:
         for s in subjects
     }
     
-    # Default to a T2D subject
-    default_subjs = bio_df[bio_df["group"] == "t2d"]["subject"].tolist()
-    default_s = default_subjs[0] if default_subjs else subjects[0]
+    current_real = st.session_state.get("selected_real_subject", 3)
+    if current_real not in subjects:
+        default_subjs = bio_df[bio_df["group"] == "t2d"]["subject"].tolist()
+        current_real = default_subjs[0] if default_subjs else subjects[0]
+        st.session_state["selected_real_subject"] = current_real
 
     chosen_s = st.selectbox(
         "Select Real CGMacros Participant",
         subjects,
-        index=subjects.index(default_s),
+        index=subjects.index(current_real),
         format_func=lambda s: subj_labels[s],
+        key="page_real_patient_selector",
     )
+    if chosen_s != st.session_state.get("selected_real_subject"):
+        st.session_state["selected_real_subject"] = chosen_s
+        st.rerun()
 
     row = bio_df[bio_df["subject"] == chosen_s].iloc[0]
 
@@ -111,7 +127,7 @@ def render_real_patients() -> None:
 
     # ── TAB 1: Real Profile & Labs ───────────────────────────────────────────
     with tab_bio:
-        st.markdown(f"#### Observed Participant Demographics {badge_html('REAL')}")
+        st.markdown(f"#### Observed Participant Demographics {badge_html('REAL')}", unsafe_allow_html=True)
         d1, d2, d3, d4 = st.columns(4)
         d1.metric("Age", f"{row['age']:.0f} yrs")
         d2.metric("Gender", "Male" if row['gender'] == "M" else "Female")
@@ -120,7 +136,7 @@ def render_real_patients() -> None:
         d4.metric("Ethnicity", str(eth) if pd.notna(eth) else "Unrecorded")
 
         st.divider()
-        st.markdown(f"#### Observed Glycemic and Lipid Laboratory Panel {badge_html('REAL')}")
+        st.markdown(f"#### Observed Glycemic and Lipid Laboratory Panel {badge_html('REAL')}", unsafe_allow_html=True)
         g1, g2, g3 = st.columns(3)
         g1.metric("HbA1c (PDL Lab)", f"{row['hba1c']:.1f}%")
         g2.metric("Fasting Glucose", f"{row['fasting_glu']:.0f} mg/dL")
@@ -139,7 +155,7 @@ def render_real_patients() -> None:
 
     # ── TAB 2: Missing Fields ────────────────────────────────────────────────
     with tab_missing:
-        st.markdown(f"#### Protocol Gaps: Fields Not Collected in CGMacros {badge_html('NOT AVAILABLE')}")
+        st.markdown(f"#### Protocol Gaps: Fields Not Collected in CGMacros {badge_html('NOT AVAILABLE')}", unsafe_allow_html=True)
         st.info(
             "Under **Honesty Rule 2**, we never attach simulated values to real study participants. "
             "The following modalities were not collected during the clinical study and are displayed as NOT AVAILABLE."
@@ -163,7 +179,7 @@ def render_real_patients() -> None:
 
     # ── TAB 3: Real CGM Telemetry ────────────────────────────────────────────
     with tab_cgm:
-        st.markdown(f"#### Real Continuous Glucose Monitoring (Libre) {badge_html('REAL')}")
+        st.markdown(f"#### Real Continuous Glucose Monitoring (Libre) {badge_html('REAL')}", unsafe_allow_html=True)
         cgm_df = load_real_cgm_participant(int(chosen_s))
         
         if cgm_df.empty:

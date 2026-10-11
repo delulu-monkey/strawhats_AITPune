@@ -206,7 +206,7 @@ def render_add_patient_form() -> None:
         bedtime = ls3.number_input("Bedtime (24h clock, e.g. 23.0 for 11 PM)", min_value=0.0, max_value=23.9, value=22.5, step=0.5)
 
         ls4, ls5, ls6 = st.columns(3)
-        steps_per_day = ls4.number_input("Steps Per Day", min_value=0, max_value=50000, value=7500, step=500)
+        steps_per_day = ls4.number_input("Steps Per Day (steps)", min_value=0, max_value=50000, value=7500, step=500)
         resting_hr = ls5.number_input("Resting Heart Rate (bpm)", min_value=30.0, max_value=120.0, value=68.0, step=1.0)
         snack_prob = ls6.number_input("Unlogged Snack Prob (per 5 min)", min_value=0.0, max_value=0.1, value=UNLOGGED_SNACK_PROB_PER_EPOCH, step=0.005, format="%.3f")
 
@@ -304,7 +304,7 @@ def render_edit_patient_form(patient_id: str) -> None:
     with st.form(f"edit_patient_form_{patient_id}"):
         c1, c2, c3 = st.columns(3)
         name = c1.text_input("Full Name *", p.name)
-        age = c2.number_input("Age *", min_value=1, max_value=120, value=int(p.age))
+        age = c2.number_input("Age (years) *", min_value=1, max_value=120, value=int(p.age))
         sex = c3.selectbox("Sex *", ["M", "F"], index=0 if p.sex == "M" else 1)
 
         c_h, c_w = st.columns(2)
@@ -324,7 +324,7 @@ def render_edit_patient_form(patient_id: str) -> None:
 
         s1, s2 = st.columns(2)
         sleep_hours = s1.number_input("Sleep Duration (hours)", min_value=3.0, max_value=12.0, value=float(p.lifestyle.typical_sleep_hours), step=0.1)
-        steps_per_day = s2.number_input("Steps per Day", min_value=0, max_value=50000, value=int(p.lifestyle.steps_per_day), step=500)
+        steps_per_day = s2.number_input("Steps per Day (steps)", min_value=0, max_value=50000, value=int(p.lifestyle.steps_per_day), step=500)
 
         b_sub, b_can = st.columns(2)
         save_btn = b_sub.form_submit_button("Update Patient", type="primary", use_container_width=True)

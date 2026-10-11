@@ -229,20 +229,20 @@ def render_patient_body_overview(
         glu_unit = "mg/dL"
         glu_sub = "Baseline Fasting"
         glu_badge = badge_html("REAL")
-        glu_spark = generate_svg_sparkline([float(real_row.get('fasting_glu', 100))] * 6, CHART_LINE_MAIN)
+        glu_spark = ""  # Single value baseline: no sparkline
 
         hr_val = "78"
         hr_unit = "bpm"
         hr_sub = "Optical sensor"
         hr_badge = badge_html("REAL")
-        hr_spark = generate_svg_sparkline([72, 75, 78, 80, 76, 78], CHART_HR)
+        hr_spark = ""  # Single value baseline: no sparkline
 
         a1c = real_row.get("hba1c", 0.0)
         a1c_val = f"{a1c:.1f}"
         a1c_unit = "%"
         a1c_sub = "PDL Lab"
         a1c_badge = badge_html("REAL")
-        a1c_spark = generate_svg_sparkline([a1c, a1c, a1c], PRIMARY_DARK)
+        a1c_spark = ""  # Single value laboratory test: no sparkline
 
         sleep_val = "—"
         sleep_unit = ""
@@ -304,21 +304,21 @@ def render_patient_body_overview(
 
         glu_unit = "mg/dL"
         glu_badge = badge_html(prov.get("fasting_glucose", "SIMULATED"))
-        glu_spark = generate_svg_sparkline(glu_series, CHART_LINE_MAIN)
+        glu_spark = generate_svg_sparkline(glu_series, PRIMARY)
 
         hr_unit = "bpm"
         hr_badge = badge_html("SIMULATED")
-        hr_spark = generate_svg_sparkline(hr_series, CHART_HR)
+        hr_spark = generate_svg_sparkline(hr_series, PRIMARY)
 
         hrv_unit = "ms"
         hrv_badge = badge_html("SIMULATED")
-        hrv_spark = generate_svg_sparkline(hr_series, CHART_HRV)
+        hrv_spark = generate_svg_sparkline(hrv_series, PRIMARY)
 
         a1c_val = f"{patient.hba1c:.1f}"
         a1c_unit = "%"
         a1c_sub = f"IR Index {patient.insulin_resistance:.2f}"
         a1c_badge = badge_html(prov.get("hba1c", "SIMULATED"))
-        a1c_spark = generate_svg_sparkline([patient.hba1c - 0.2, patient.hba1c, patient.hba1c, patient.hba1c], PRIMARY_DARK)
+        a1c_spark = ""  # Static laboratory value: no sparkline
 
         sleep_hrs = patient.lifestyle.typical_sleep_hours
         sleep_val = f"{sleep_hrs:.1f}"
@@ -329,13 +329,13 @@ def render_patient_body_overview(
         w_str = f"{int(w_hour):02d}:{int((w_hour % 1) * 60):02d}"
         sleep_sub = f"{b_str}–{w_str}"
         sleep_badge = badge_html(prov.get("typical_sleep_hours", "SIMULATED"))
-        sleep_spark = generate_svg_sparkline([sleep_hrs * 0.9, sleep_hrs, sleep_hrs * 1.05, sleep_hrs], CHART_SLEEP)
+        sleep_spark = generate_svg_sparkline([sleep_hrs * 0.9, sleep_hrs, sleep_hrs * 1.05, sleep_hrs], PRIMARY)
 
         steps_val = f"{patient.lifestyle.steps_per_day:,}"
         steps_unit = "steps"
         steps_sub = "Daily habitual"
         steps_badge = badge_html(prov.get("steps_per_day", "SIMULATED"))
-        steps_spark = generate_svg_sparkline(steps_series, CHART_STEPS)
+        steps_spark = generate_svg_sparkline(steps_series, PRIMARY)
 
     # Build the six cards with ZERO leading whitespace
     def make_card(label, badge, val, unit, sub, spark):

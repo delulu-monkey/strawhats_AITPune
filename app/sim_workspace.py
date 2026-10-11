@@ -116,7 +116,7 @@ def main() -> None:
 
     st.sidebar.divider()
 
-    # ─── Sidebar: Patient List (Preset & Custom) ─────────────────────────────
+    # ─── Sidebar: Patient List (Preset, Custom, or Real Reference) ───────────
     st.sidebar.markdown(
         f"""
         <div style="font-size: 12px; font-weight: 600; color: {PRIMARY_DARK}; margin-bottom: 6px;">
@@ -126,52 +126,97 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    def format_patient_label(pid: str) -> str:
-        for p in all_patients:
-            if p["id"] == pid:
-                tag = "PRESET" if p["type"] == "preset" else "CUSTOM"
-                return f"{p['name']} ({tag})"
-        return pid
+    if "Real Reference" in chosen_nav:
+        from app.sim_ui.common import load_real_bio_data
+        bio_df = load_real_bio_data()
+        real_subjects = bio_df["subject"].tolist()
+        cur_real = st.session_state.get("selected_real_subject", 3)
+        if cur_real not in real_subjects:
+            default_t2d = bio_df[bio_df["group"] == "t2d"]["subject"].tolist()
+            cur_real = default_t2d[0] if default_t2d else real_subjects[0]
+            st.session_state["selected_real_subject"] = cur_real
 
-    cur_idx = patient_ids.index(default_id) if default_id in patient_ids else 0
-    selected_sidebar_pid = st.sidebar.selectbox(
-        "Select Patient",
-        patient_ids,
-        index=cur_idx,
-        format_func=format_patient_label,
-        key="sidebar_patient_selector",
-        label_visibility="collapsed",
-    )
-    if selected_sidebar_pid != st.session_state.get("selected_patient_id"):
-        st.session_state["selected_patient_id"] = selected_sidebar_pid
-        st.rerun()
+        def format_real_label(s_num: int) -> str:
+            grp = bio_df.loc[bio_df["subject"] == s_num, "group"].iloc[0]
+            return f"CGMacros-{s_num:03d} ({grp.upper()})"
 
-    # Visual highlight of selected patient info
-    cur_p = next((p for p in all_patients if p["id"] == st.session_state.get("selected_patient_id")), None)
-    if cur_p:
-        is_preset = cur_p["type"] == "preset"
-        badge_type = (
-            f"<span style='background:{PRIMARY_TINT}; color:{PRIMARY_DARK}; font-size:10px; "
-            f"font-weight:700; padding:1px 5px; border-radius:3px;'>PRESET</span>"
-            if is_preset
-            else f"<span style='background:{BADGE_REAL_BG}; color:{BADGE_REAL_TEXT}; font-size:10px; "
-            f"font-weight:700; padding:1px 5px; border-radius:3px;'>CUSTOM</span>"
+        sel_real_idx = real_subjects.index(cur_real) if cur_real in real_subjects else 0
+        selected_real = st.sidebar.selectbox(
+            "Select Real Participant",
+            real_subjects,
+            index=sel_real_idx,
+            format_func=format_real_label,
+            key="sidebar_real_participant_selector",
+            label_visibility="collapsed",
         )
+        if selected_real != st.session_state.get("selected_real_subject"):
+            st.session_state["selected_real_subject"] = selected_real
+            st.rerun()
+
+        row_real = bio_df[bio_df["subject"] == cur_real].iloc[0]
         st.sidebar.markdown(
             f"""
             <div style="background-color: {PRIMARY_TINT}; border: 1px solid {PRIMARY};
                         border-radius: 6px; padding: 8px 10px; margin-top: 6px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size: 12px; font-weight: 700; color: {PRIMARY_DARK};">{cur_p['name']}</span>
-                    {badge_type}
+                    <span style="font-size: 12px; font-weight: 700; color: {PRIMARY_DARK};">CGMacros-{cur_real:03d}</span>
+                    <span style='background:{BADGE_REAL_BG}; color:{BADGE_REAL_TEXT}; font-size:10px;
+                                font-weight:700; padding:1px 5px; border-radius:3px; border:1px solid {BORDER};'>REAL</span>
                 </div>
                 <div style="font-size: 11px; color: {TEXT_SECONDARY}; margin-top: 3px;">
-                    Age {cur_p.get('age', '--')} · HbA1c {cur_p.get('hba1c', '--')}% · BMI {cur_p.get('bmi', '--')}
+                    Age {row_real.get('age', '--')} · HbA1c {row_real.get('hba1c', '--')}% · BMI {row_real.get('bmi', '--')} ({row_real.get('group', '').upper()})
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+    else:
+        def format_patient_label(pid: str) -> str:
+            for p in all_patients:
+                if p["id"] == pid:
+                    tag = "PRESET" if p["type"] == "preset" else "CUSTOM"
+                    return f"{p['name']} ({tag})"
+            return pid
+
+        cur_idx = patient_ids.index(default_id) if default_id in patient_ids else 0
+        selected_sidebar_pid = st.sidebar.selectbox(
+            "Select Patient",
+            patient_ids,
+            index=cur_idx,
+            format_func=format_patient_label,
+            key="sidebar_patient_selector",
+            label_visibility="collapsed",
+        )
+        if selected_sidebar_pid != st.session_state.get("selected_patient_id"):
+            st.session_state["selected_patient_id"] = selected_sidebar_pid
+            st.rerun()
+
+        # Visual highlight of selected patient info
+        cur_p = next((p for p in all_patients if p["id"] == st.session_state.get("selected_patient_id")), None)
+        if cur_p:
+            is_preset = cur_p["type"] == "preset"
+            badge_type = (
+                f"<span style='background:{PRIMARY_TINT}; color:{PRIMARY_DARK}; font-size:10px; "
+                f"font-weight:700; padding:1px 5px; border-radius:3px;'>PRESET</span>"
+                if is_preset
+                else f"<span style='background:{BADGE_REAL_BG}; color:{BADGE_REAL_TEXT}; font-size:10px; "
+                f"font-weight:700; padding:1px 5px; border-radius:3px;'>CUSTOM</span>"
+            )
+            st.sidebar.markdown(
+                f"""
+                <div style="background-color: {PRIMARY_TINT}; border: 1px solid {PRIMARY};
+                            border-radius: 6px; padding: 8px 10px; margin-top: 6px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size: 12px; font-weight: 700; color: {PRIMARY_DARK};">{cur_p['name']}</span>
+                        {badge_type}
+                    </div>
+                    <div style="font-size: 11px; color: {TEXT_SECONDARY}; margin-top: 3px;">
+                        Age {cur_p.get('age', '--')} · HbA1c {cur_p.get('hba1c', '--')}% · BMI {cur_p.get('bmi', '--')}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     st.sidebar.divider()
 
@@ -195,37 +240,21 @@ def main() -> None:
         "twin pipelines, not clinical evidence."
     )
 
-    # ─── Top Bar: Product Name, Prototype Label, Patient Search ──────────────
-    top_c1, top_c2 = st.columns([2, 1])
-    with top_c1:
-        st.markdown(
-            f"""
-            <div style="display: flex; align-items: baseline; gap: 12px; padding: 4px 0 10px 0;">
-                <span style="font-size: 20px; font-weight: 700; color: {PRIMARY_DARK};">
-                    Digital Twin Workspace
-                </span>
-                <span style="background: {PRIMARY_TINT}; color: {PRIMARY_DARK}; font-size: 11px;
-                             font-weight: 600; padding: 2px 8px; border-radius: 4px; border: 1px solid {BORDER};">
-                    Research prototype, simulated patients
-                </span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with top_c2:
-        search_kw = st.text_input(
-            "Search patients",
-            "",
-            placeholder="Search patient name...",
-            label_visibility="collapsed",
-            key="top_bar_patient_search",
-        )
-        if search_kw.strip():
-            for p in all_patients:
-                if search_kw.strip().lower() in p["name"].lower():
-                    if p["id"] != st.session_state.get("selected_patient_id"):
-                        st.session_state["selected_patient_id"] = p["id"]
-                        st.rerun()
+    # ─── Top Bar: Product Name & Prototype Label ─────────────────────────────
+    st.markdown(
+        f"""
+        <div style="display: flex; align-items: baseline; gap: 12px; padding: 0 0 10px 0;">
+            <span style="font-size: 20px; font-weight: 700; color: {PRIMARY_DARK};">
+                Digital Twin Workspace
+            </span>
+            <span style="background: {PRIMARY_TINT}; color: {PRIMARY_DARK}; font-size: 11px;
+                         font-weight: 600; padding: 2px 8px; border-radius: 4px; border: 1px solid {BORDER};">
+                Research prototype, simulated patients
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Mandatory Research Disclaimer Banner
     render_banner()

@@ -100,9 +100,13 @@ def render_assumptions_view() -> None:
     )
 
     st.info(
-        "**Transparency Guarantee for Judges and Clinicians:** Every constant below is defined "
-        "in `src/sim/assumptions.py`. None of these effect sizes are hidden inside machine learning weights; "
-        "each has an explicit physiological rationale and was calibrated against real CGMacros clinical cohorts in Part 2."
+        "**Research Prototype Notice:** Simulated physiological outputs demonstrate mathematical twin pipelines, "
+        "not certified clinical accuracy. All models and scenarios are research prototypes for simulated or "
+        "anonymised patients only.\n\n"
+        "**Transparency Guarantee for Judges and Clinicians:** Every constant below is defined in "
+        "`src/sim/assumptions.py`. None of these effect sizes are hidden inside machine learning weights; "
+        "each has an explicit physiological rationale and was set as documented assumptions; see sim_fidelity.md "
+        "for the comparison with real data."
     )
 
     # Render Categorized Tables

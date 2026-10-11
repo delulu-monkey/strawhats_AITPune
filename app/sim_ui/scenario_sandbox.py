@@ -82,7 +82,7 @@ def render_scenario_sandbox() -> None:
     st.markdown(
         f"**Patient Baseline:** {patient.name} · Age {patient.age} · HbA1c {patient.hba1c:.1f}% · "
         f"BMI {patient.bmi:.1f} · Usual Sleep: {patient.lifestyle.typical_sleep_hours:.1f}h · "
-        f"Habitual Steps: {patient.lifestyle.steps_per_day:,} · Seed: `{patient.seed}` {badge_html('SIMULATED')}",
+        f"Habitual Steps: {patient.lifestyle.steps_per_day:,} · Seed: {patient.seed} {badge_html('SIMULATED')}",
         unsafe_allow_html=True,
     )
 

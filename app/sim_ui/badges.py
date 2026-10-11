@@ -67,21 +67,14 @@ def badge_html(tag: str) -> str:
 
 
 def render_banner() -> None:
-    """Mandatory clinical disclaimer banner."""
+    """Mandatory clinical disclaimer banner: single-line neutral strip."""
     st.markdown(
         """
         <div class="research-banner">
-            <div>
-                <div class="banner-text">
-                    Research prototype. For simulated or anonymised patients only. Not a medical device.
-                </div>
-                <div class="banner-sub">
-                    Simulated physiological outputs demonstrate mathematical twin pipelines, not certified clinical accuracy.
-                </div>
-            </div>
-            <div>
-                <span class="banner-pill">SIMULATION WORKSPACE</span>
-            </div>
+            <span class="banner-text">
+                Research prototype. For simulated or anonymised patients only. Not a medical device.
+            </span>
+            <span class="banner-pill">RESEARCH PROTOTYPE</span>
         </div>
         """,
         unsafe_allow_html=True,

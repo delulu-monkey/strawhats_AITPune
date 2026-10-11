@@ -116,7 +116,7 @@ def render_patient_view() -> None:
                         Height {patient.height_cm:.0f} cm · Weight {patient.weight_kg:.1f} kg ·
                         <strong>BMI {patient.bmi:.1f} kg/m²</strong> ·
                         <strong>HbA1c {patient.hba1c:.1f}%</strong> ·
-                        Fasting Glu {patient.fasting_glucose:.0f} mg/dL · Seed: <code>{patient.seed}</code>
+                        Fasting Glu {patient.fasting_glucose:.0f} mg/dL · Seed: <span style="color: {TEXT_SECONDARY};">{patient.seed}</span>
                     </div>
                     <div style="font-size: 12px; color: {TEXT_MAIN}; margin-top: 4px; font-weight: 500;">
                         Clinical summary: {patient.description or 'Synthetic patient persona.'}
