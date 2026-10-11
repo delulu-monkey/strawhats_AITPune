@@ -48,7 +48,27 @@ st.set_page_config(
 )
 
 
+import streamlit.components.v1 as components
+
+
 def main() -> None:
+    # One-time safeguard: clear any stored collapsed sidebar state in localStorage
+    components.html(
+        """
+        <script>
+        try {
+            Object.keys(localStorage).forEach(function(k) {
+                if (k.toLowerCase().includes("sidebar")) {
+                    localStorage.removeItem(k);
+                }
+            });
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
     # Clinical white & blue theme
     apply_theme()
 

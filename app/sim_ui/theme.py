@@ -157,52 +157,10 @@ def generate_svg_sparkline(values: List[float], stroke_color: str, width: int = 
     )
 
 
-def get_human_body_svg() -> str:
-    """
-    Simple, flat, line-style human outline in blue-grey.
-    Used only as a small anatomical locator next to the data cards.
-    No glow, no gradients, no sci-fi effects.
-    """
-    body_path = (
-        "M 112 56 "
-        "C 105 65, 85 75, 70 85 "
-        "C 60 92, 52 140, 48 185 "
-        "C 45 200, 42 215, 45 225 "
-        "C 48 230, 52 230, 55 225 "
-        "C 58 215, 57 195, 60 180 "
-        "C 62 165, 68 135, 82 120 "
-        "C 84 140, 88 160, 86 180 "
-        "C 84 195, 80 205, 82 220 "
-        "C 84 240, 86 280, 88 320 "
-        "C 89 335, 82 348, 86 352 "
-        "C 92 355, 98 350, 100 345 "
-        "C 103 330, 106 280, 114 235 "
-        "Q 120 225, 126 235 "
-        "C 134 280, 137 330, 140 345 "
-        "C 142 350, 148 355, 154 352 "
-        "C 158 348, 151 335, 152 320 "
-        "C 154 280, 156 240, 158 220 "
-        "C 160 205, 156 195, 154 180 "
-        "C 152 160, 156 140, 158 120 "
-        "C 172 135, 178 165, 180 180 "
-        "C 183 195, 182 215, 185 225 "
-        "C 188 230, 192 230, 195 225 "
-        "C 198 215, 195 200, 192 185 "
-        "C 188 140, 180 92, 170 85 "
-        "C 155 75, 135 65, 128 56 Z"
-    )
-
-    svg = (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 370" '
-        f'style="max-height: 230px; width: 100%; display: block; margin: 0 auto;">'
-        f'<circle cx="120" cy="34" r="16" fill="none" stroke="{CHART_LINE_BASELINE}" stroke-width="1.5" />'
-        f'<path d="{body_path}" fill="{PRIMARY_TINT}" fill-opacity="0.35" stroke="{CHART_LINE_BASELINE}" stroke-width="1.5" />'
-        f'<circle cx="110" cy="115" r="4" fill="{PRIMARY}" opacity="0.6" />'
-        f'<circle cx="126" cy="155" r="4" fill="{PRIMARY}" opacity="0.6" />'
-        f'<circle cx="120" cy="275" r="4" fill="{PRIMARY}" opacity="0.6" />'
-        f'</svg>'
-    )
-    return svg
+def get_human_body_svg(prov_map: Optional[Dict[str, str]] = None) -> str:
+    """Return responsive Patient and Digital Twin illustration SVG."""
+    from app.sim_ui.twin_figure import get_patient_and_twin_svg
+    return get_patient_and_twin_svg(prov_map)
 
 
 def render_patient_body_overview(
@@ -359,7 +317,26 @@ def render_patient_body_overview(
         make_card("Steps", steps_badge, steps_val, steps_unit, steps_sub, steps_spark),
     ])
 
-    svg_body = get_human_body_svg()
+    # Prepare metric provenance for Patient and Digital Twin illustration
+    if is_real and real_row is not None:
+        twin_prov = {
+            "sleep": "NOT AVAILABLE",
+            "hr": "NOT AVAILABLE",
+            "glucose": "REAL",
+            "hba1c": "REAL",
+            "steps": "NOT AVAILABLE",
+        }
+    else:
+        twin_prov = {
+            "sleep": prov.get("typical_sleep_hours", "SIMULATED"),
+            "hr": prov.get("heart_rate", "SIMULATED"),
+            "glucose": prov.get("fasting_glucose", "SIMULATED"),
+            "hba1c": prov.get("hba1c", "SIMULATED"),
+            "steps": prov.get("steps_per_day", "SIMULATED"),
+        }
+
+    from app.sim_ui.twin_figure import get_patient_and_twin_svg
+    svg_body = get_patient_and_twin_svg(twin_prov)
 
     overview_html = (
         f'<div class="sim-glass-card" style="margin-bottom: 20px;">'
@@ -370,11 +347,11 @@ def render_patient_body_overview(
         f'<span style="font-size:12px; color:{TEXT_SECONDARY}; margin-left:10px;">Six core modalities with trend trajectory and provenance</span>'
         f'</div>'
         f'</div>'
-        f'<div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">'
-        f'<div style="flex:1 1 0; display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; min-width:0;">'
+        f'<div style="display:flex; gap:20px; align-items:center; justify-content:space-between; flex-wrap:wrap;">'
+        f'<div style="flex:1 1 560px; display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; min-width:320px;">'
         f'{cards_html}'
         f'</div>'
-        f'<div style="flex:0 0 110px; display:flex; align-items:center; justify-content:center; padding:4px;">'
+        f'<div style="flex:0 0 300px; max-width:310px; width:100%; display:flex; align-items:center; justify-content:center; padding:4px; margin:0 auto;">'
         f'{svg_body}'
         f'</div>'
         f'</div>'

@@ -63,14 +63,61 @@
   --tw-size-label: 12px;
 }
 
-/* ─── Hide Streamlit chrome ─── */
-header[data-testid="stHeader"],
+/* ─── Hide Streamlit chrome: Deploy button & menu, keep header container ─── */
 #MainMenu,
+[data-testid="stAppDeployButton"],
+[data-testid="stToolbar"] [data-testid="stAppDeployButton"],
+[data-testid="stToolbar"] [data-testid="stToolbarActionButton"],
+[data-testid="stToolbar"] [data-testid="stManageAppButton"],
+[data-testid="stToolbar"] [data-testid="stBaseButton-header"],
+[data-testid="stToolbar"] #MainMenu,
+[data-testid="stToolbarActions"],
+[data-testid="stDeployButton"],
+.stAppDeployButton,
+.stMainMenu,
 footer,
 div[data-testid="stDecoration"],
 button[title="View app in Streamlit Community Cloud"],
 .viewerBadge_container__1QSob {
   display: none !important;
+}
+
+header[data-testid="stHeader"] {
+  background: transparent !important;
+  color-scheme: light !important;
+}
+
+/* ─── Make sidebar impossible to collapse ─── */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"],
+button[data-testid="stSidebarCollapseButton"],
+button[data-testid="baseButton-headerNoPadding"],
+div[data-testid="collapsedControl"] {
+  display: none !important;
+}
+
+/* ─── Material Icons font guarantee (exclude from global font-family) ─── */
+span[data-testid="stIconMaterial"],
+[data-testid="stIconMaterial"],
+[class*="material-symbols"],
+[class*="material-icons"],
+[class*="material"],
+[class*="Material"],
+.material-icons,
+.material-symbols-rounded,
+.material-symbols-outlined {
+  font-family: "Material Symbols Rounded", "Material Icons" !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  direction: ltr !important;
+  -webkit-font-feature-settings: "liga" !important;
+  -webkit-font-smoothing: antialiased !important;
 }
 
 /* ─── Global App Layout ─── */
@@ -82,7 +129,7 @@ html, body, .stApp {
   color-scheme: light !important;
 }
 
-html, body, .stApp, .stApp * {
+html, body, .stApp *:not([data-testid="stIconMaterial"]):not([class*="material"]):not([class*="Material"]):not(.material-icons):not(.material-symbols-rounded):not(.material-symbols-outlined) {
   font-feature-settings: "tnum" 1 !important;
 }
 
@@ -106,17 +153,19 @@ html, body, .stApp, .stApp * {
 
 [data-testid="stSidebar"] > div:first-child,
 [data-testid="stSidebarContent"],
+[data-testid="stSidebarUserContent"],
 section[data-testid="stSidebar"] div[data-testid="stSidebarContent"],
+section[data-testid="stSidebar"] .stVerticalBlock,
 div[data-testid="stSidebarHeader"] {
   overflow-x: hidden !important;
-  padding-left: 1.25rem !important;
-  padding-right: 1.25rem !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
   padding-top: 0.5rem !important;
   box-sizing: border-box !important;
   scroll-behavior: auto !important;
 }
 
-[data-testid="stSidebar"] * {
+[data-testid="stSidebar"] *:not([data-testid="stIconMaterial"]):not([class*="material"]):not([class*="Material"]):not(.material-icons):not(.material-symbols-rounded):not(.material-symbols-outlined) {
   font-family: var(--tw-font) !important;
   color-scheme: light !important;
   box-sizing: border-box !important;
@@ -643,37 +692,42 @@ div[data-testid="stSlider"] div[role="group"] {
   box-shadow: none !important;
 }
 
-/* Track container / background bar: light gray bar */
-div[data-testid="stSlider"] div[class*="efbyxod2"] {
-  background-color: #E2E8F0 !important;
+/* Track container / background bar: unfilled track #DCE6F5 */
+div[data-testid="stSlider"] div[class*="efbyxod2"],
+div[data-baseweb="slider"] > div > div {
+  background-color: #DCE6F5 !important;
+  background: #DCE6F5 !important;
   border: none !important;
   box-shadow: none !important;
   border-radius: 4px !important;
   height: 6px !important;
 }
 
-/* Filled active progress bar: primary blue via hue rotation */
+/* Filled active progress bar: #1D5FD1, NO hue-rotate */
 div[data-testid="stSlider"] div[class*="efbyxod5"] {
-  filter: hue-rotate(218deg) !important;
+  filter: none !important;
   border: none !important;
   border-radius: 4px !important;
   height: 6px !important;
 }
 
-/* Knob / Thumb: clean round circle */
+/* Knob / Thumb: #1D5FD1 with clean border and focus glow */
 div[data-testid="stSlider"] div[class*="efbyxod3"],
 div[data-testid="stSlider"] div[role="slider"],
 div[data-baseweb="slider"] div[role="slider"] {
-  background-color: #FFFFFF !important;
-  border: 2px solid var(--tw-primary) !important;
+  background-color: var(--tw-primary) !important;
+  background: var(--tw-primary) !important;
+  border: 2px solid #FFFFFF !important;
   border-radius: 50% !important;
   width: 18px !important;
   height: 18px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 1px 4px rgba(15, 27, 45, 0.25) !important;
 }
 
 div[data-testid="stSlider"] div[class*="efbyxod3"]:hover,
-div[data-testid="stSlider"] div[class*="efbyxod3"]:active {
+div[data-testid="stSlider"] div[class*="efbyxod3"]:active,
+div[data-testid="stSlider"] div[role="slider"]:hover,
+div[data-testid="stSlider"] div[role="slider"]:focus {
   box-shadow: 0 0 0 4px var(--tw-primary-tint) !important;
 }
 
