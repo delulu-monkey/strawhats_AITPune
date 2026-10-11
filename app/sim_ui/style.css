@@ -1,0 +1,618 @@
+/*
+ * Clinical Digital Twin Workspace — Stylesheet
+ * =============================================
+ * All colors are defined as CSS custom properties in :root.
+ * Design: professional clinical software (EHR-style), white/blue, calm.
+ */
+
+/* ─── Design Tokens ─── */
+:root {
+  color-scheme: light !important;
+
+  /* Page & Backgrounds */
+  --tw-bg-page: #FFFFFF;
+  --tw-bg-app: #F5F8FC;
+  --tw-bg-card: #FFFFFF;
+
+  /* Borders & Shadows */
+  --tw-border: #E3E9F2;
+  --tw-shadow-card: 0 1px 3px rgba(15, 27, 45, 0.05);
+
+  /* Primary Palette */
+  --tw-primary: #1D5FD1;
+  --tw-primary-dark: #0F3D91;
+  --tw-primary-tint: #EAF1FD;
+
+  /* Text */
+  --tw-text-main: #0F1B2D;
+  --tw-text-secondary: #5B6B82;
+
+  /* Status */
+  --tw-status-ok: #2F855A;
+  --tw-status-watch: #B7791F;
+  --tw-status-high: #C0392B;
+
+  /* Badge provenance backgrounds */
+  --tw-badge-real-bg: #E6F4EA;
+  --tw-badge-real-border: #A3D9A5;
+  --tw-badge-real-text: #1B5E20;
+
+  --tw-badge-sim-bg: #EAF1FD;
+  --tw-badge-sim-border: #90B8F8;
+  --tw-badge-sim-text: #0F3D91;
+
+  --tw-badge-user-bg: #FFF8E1;
+  --tw-badge-user-border: #FFD54F;
+  --tw-badge-user-text: #795548;
+
+  --tw-badge-na-bg: #F0F2F5;
+  --tw-badge-na-border: #CFD8DC;
+  --tw-badge-na-text: #5B6B82;
+
+  /* Spacing grid */
+  --tw-radius-card: 8px;
+  --tw-radius-btn: 6px;
+  --tw-pad-card: 20px;
+  --tw-pad-section: 24px;
+
+  /* Typography */
+  --tw-font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --tw-size-page-title: 20px;
+  --tw-size-card-value: 28px;
+  --tw-size-body: 14px;
+  --tw-size-label: 12px;
+}
+
+/* ─── Hide Streamlit chrome ─── */
+header[data-testid="stHeader"],
+#MainMenu,
+footer,
+div[data-testid="stDecoration"],
+button[title="View app in Streamlit Community Cloud"],
+.viewerBadge_container__1QSob {
+  display: none !important;
+}
+
+/* ─── Global App Layout ─── */
+html, body, .stApp {
+  background-color: var(--tw-bg-app) !important;
+  color: var(--tw-text-main) !important;
+  font-family: var(--tw-font) !important;
+  font-size: var(--tw-size-body) !important;
+  color-scheme: light !important;
+}
+
+html, body, .stApp, .stApp * {
+  font-feature-settings: "tnum" 1 !important;
+}
+
+/* ─── Main Content Container ─── */
+.main .block-container {
+  padding-top: 1.2rem !important;
+  padding-bottom: 3rem !important;
+  max-width: 1440px !important;
+}
+
+/* ─── Sidebar ─── */
+[data-testid="stSidebar"] {
+  background-color: var(--tw-bg-page) !important;
+  border-right: 1px solid var(--tw-border) !important;
+  color-scheme: light !important;
+}
+
+[data-testid="stSidebar"] * {
+  font-family: var(--tw-font) !important;
+  color-scheme: light !important;
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+  color: var(--tw-primary-dark) !important;
+  font-weight: 600 !important;
+}
+
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] div {
+  color: var(--tw-text-main) !important;
+}
+
+[data-testid="stSidebar"] .stCaption,
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+  color: var(--tw-text-secondary) !important;
+}
+
+/* Sidebar Radio Buttons */
+[data-testid="stSidebar"] div[data-baseweb="radio"] label {
+  color: var(--tw-text-main) !important;
+  font-size: var(--tw-size-body) !important;
+  padding: 6px 10px !important;
+  margin: 2px 0 !important;
+  border-radius: var(--tw-radius-btn) !important;
+  transition: background-color 0.12s ease;
+}
+
+[data-testid="stSidebar"] div[data-baseweb="radio"] label:hover {
+  background-color: var(--tw-primary-tint) !important;
+}
+
+[data-testid="stSidebar"] div[data-baseweb="radio"] div[aria-checked="true"] {
+  background-color: var(--tw-primary) !important;
+}
+
+/* ─── Headings ─── */
+.stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {
+  font-family: var(--tw-font) !important;
+  color: var(--tw-primary-dark) !important;
+  font-weight: 600 !important;
+  margin-top: 0.5rem !important;
+}
+
+.stApp h1 { font-size: 24px !important; }
+.stApp h2 { font-size: var(--tw-size-page-title) !important; }
+.stApp h3 { font-size: 17px !important; }
+.stApp h4 { font-size: 15px !important; }
+.stApp h5 { font-size: 14px !important; }
+
+/* ─── Streamlit Metric Cards ─── */
+div[data-testid="stMetric"] {
+  background-color: var(--tw-bg-card) !important;
+  border: 1px solid var(--tw-border) !important;
+  border-radius: var(--tw-radius-card) !important;
+  padding: 14px 18px !important;
+  box-shadow: var(--tw-shadow-card) !important;
+}
+
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] *,
+label[data-testid="stMetricLabel"],
+div[data-testid="stMetricLabel"] {
+  color: var(--tw-text-secondary) !important;
+  font-size: var(--tw-size-label) !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  opacity: 1 !important;
+}
+
+div[data-testid="stMetricValue"],
+div[data-testid="stMetricValue"] div {
+  color: var(--tw-text-main) !important;
+  font-weight: 700 !important;
+  font-size: 22px !important;
+}
+
+/* ─── Tabs ─── */
+div[data-baseweb="tab-list"] {
+  border-bottom: 1px solid var(--tw-border) !important;
+  gap: 4px !important;
+}
+
+button[data-baseweb="tab"] {
+  background-color: transparent !important;
+  color: var(--tw-text-secondary) !important;
+  border-bottom: 2px solid transparent !important;
+  font-weight: 500 !important;
+  font-size: var(--tw-size-body) !important;
+  padding: 8px 16px !important;
+  transition: all 0.15s ease !important;
+}
+
+button[data-baseweb="tab"]:hover {
+  color: var(--tw-primary) !important;
+  background-color: var(--tw-primary-tint) !important;
+  border-radius: 4px 4px 0 0 !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+  color: var(--tw-primary) !important;
+  border-bottom: 2px solid var(--tw-primary) !important;
+  font-weight: 600 !important;
+}
+
+/* ─── Buttons ─── */
+button[kind="primary"],
+.stButton > button[data-testid="stFormSubmitButton"],
+button.st-emotion-cache-18ni7ap {
+  background-color: var(--tw-primary) !important;
+  border: 1px solid var(--tw-primary) !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  border-radius: var(--tw-radius-btn) !important;
+  box-shadow: none !important;
+  padding: 6px 16px !important;
+  transition: background-color 0.15s ease !important;
+}
+
+button[kind="primary"]:hover {
+  background-color: var(--tw-primary-dark) !important;
+  border-color: var(--tw-primary-dark) !important;
+}
+
+button[kind="secondary"],
+.stButton > button {
+  background-color: var(--tw-bg-page) !important;
+  border: 1px solid var(--tw-border) !important;
+  color: var(--tw-text-main) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  border-radius: var(--tw-radius-btn) !important;
+  box-shadow: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.stButton > button:hover {
+  border-color: var(--tw-primary) !important;
+  color: var(--tw-primary) !important;
+  background-color: var(--tw-primary-tint) !important;
+}
+
+/* ─── Widget Labels & Form Inputs ─── */
+div[data-testid="stWidgetLabel"] label,
+div[data-testid="stWidgetLabel"] p,
+div[data-testid="stWidgetLabel"] span,
+label[data-testid="stWidgetLabel"] {
+  color: var(--tw-text-main) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  opacity: 1 !important;
+}
+
+div[data-testid="stTextInput"] input,
+div[data-testid="stNumberInput"] input,
+div[data-testid="stDateInput"] input,
+div[data-testid="stTimeInput"] input,
+div[data-testid="stSelectbox"] input {
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--tw-border) !important;
+  border-radius: var(--tw-radius-btn) !important;
+  color: var(--tw-text-main) !important;
+  -webkit-text-fill-color: var(--tw-text-main) !important;
+  font-family: var(--tw-font) !important;
+  font-size: 13px !important;
+}
+
+div[data-testid="stTextInput"] div[class*="eqy66r52"],
+div[data-testid="stTextInput"] > div > div,
+div[data-testid="stNumberInput"] div[class*="e1rv0tzo0"],
+div[data-testid="stNumberInput"] > div > div,
+div[data-testid="stDateInput"] div[class*="eho2kp72"],
+div[data-testid="stTimeInput"] div[class*="eho2kp72"],
+div[data-testid="stDateInput"] div[data-baseweb="input"],
+div[data-testid="stTimeInput"] div[data-baseweb="input"],
+div[data-testid="stDateInput"] > div > div,
+div[data-testid="stTimeInput"] > div > div {
+  background-color: #FFFFFF !important;
+  color: var(--tw-text-main) !important;
+  border: 1px solid var(--tw-border) !important;
+  border-radius: var(--tw-radius-btn) !important;
+}
+
+div[data-testid="stTextInput"] input:focus,
+div[data-testid="stNumberInput"] input:focus,
+div[data-testid="stDateInput"] input:focus,
+div[data-testid="stTimeInput"] input:focus,
+div[data-testid="stSelectbox"] input:focus {
+  border-color: var(--tw-primary) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(29, 95, 209, 0.15) !important;
+}
+
+div[data-testid="stNumberInput"] button {
+  background-color: #FFFFFF !important;
+  color: var(--tw-text-main) !important;
+  border: 1px solid var(--tw-border) !important;
+}
+
+/* Selectbox: modern React-Aria and BaseWeb */
+div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+div[data-baseweb="select"] > div,
+div[data-baseweb="select"] div[aria-expanded],
+div[data-testid="stSelectbox"] div[class*="e1fp86qc0"],
+div[data-testid="stSelectbox"] .react-aria-ComboBox,
+div[data-testid="stSelectbox"] div[role="combobox"] {
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--tw-border) !important;
+  border-radius: var(--tw-radius-btn) !important;
+  color: var(--tw-text-main) !important;
+}
+
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] div,
+div[data-baseweb="select"] p,
+div[data-testid="stSelectbox"] span,
+div[data-testid="stSelectbox"] p,
+div[data-testid="stSelectbox"] div {
+  color: var(--tw-text-main) !important;
+}
+
+div[data-testid="stSelectbox"] button {
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--tw-text-secondary) !important;
+}
+
+div[data-testid="stSelectbox"] svg {
+  color: var(--tw-text-secondary) !important;
+}
+
+div[data-testid="stSelectbox"] svg path[fill="none"] {
+  fill: none !important;
+}
+
+/* Dropdown popover menu options */
+div[data-baseweb="popover"],
+div[data-baseweb="menu"],
+ul[data-testid="stSelectboxVirtualDropdown"],
+div[role="listbox"],
+ul[role="listbox"],
+li[role="option"] {
+  background-color: #FFFFFF !important;
+  color: var(--tw-text-main) !important;
+}
+
+li[role="option"]:hover,
+li[role="option"][aria-selected="true"] {
+  background-color: var(--tw-primary-tint) !important;
+  color: var(--tw-primary) !important;
+}
+
+/* ─── Slider Styling: clinical white/blue ─── */
+/* Outer container: transparent background */
+div[data-testid="stSlider"] div[class*="efbyxod1"],
+div[data-testid="stSlider"] div[role="group"] {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Track container / background bar: light gray bar */
+div[data-testid="stSlider"] div[class*="efbyxod2"] {
+  background-color: #E2E8F0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 4px !important;
+  height: 6px !important;
+}
+
+/* Filled active progress bar: primary blue via hue rotation */
+div[data-testid="stSlider"] div[class*="efbyxod5"] {
+  filter: hue-rotate(218deg) !important;
+  border: none !important;
+  border-radius: 4px !important;
+  height: 6px !important;
+}
+
+/* Knob / Thumb: clean round circle */
+div[data-testid="stSlider"] div[class*="efbyxod3"],
+div[data-testid="stSlider"] div[role="slider"],
+div[data-baseweb="slider"] div[role="slider"] {
+  background-color: #FFFFFF !important;
+  border: 2px solid var(--tw-primary) !important;
+  border-radius: 50% !important;
+  width: 18px !important;
+  height: 18px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+div[data-testid="stSlider"] div[class*="efbyxod3"]:hover,
+div[data-testid="stSlider"] div[class*="efbyxod3"]:active {
+  box-shadow: 0 0 0 4px var(--tw-primary-tint) !important;
+}
+
+/* Thumb value tooltip / indicator */
+div[data-testid="stSlider"] [data-testid="stSliderThumbValue"],
+div[data-testid="stSliderThumbValue"],
+div[data-testid="stSliderThumbValue"] p,
+div[data-testid="stSliderThumbValue"] span,
+div[data-testid="stSliderThumbValue"] div,
+div[data-testid="stSlider"] div[class*="efbyxod4"] p {
+  color: var(--tw-primary) !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+}
+
+/* Remove any background on tick bars */
+div[data-testid="stSlider"] div[class*="efbyxod6"],
+div[data-testid="stSlider"] div[data-testid="stSliderTickBar"] {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+/* ─── Checkbox Styling: primary blue ─── */
+[data-testid="stCheckbox"] div[class*="e1ap2qgk5"],
+[data-testid="stCheckbox"] div:has(> svg),
+div[data-baseweb="checkbox"] span[data-checked="true"],
+input[type="checkbox"]:checked + div {
+  background-color: var(--tw-primary) !important;
+  border-color: var(--tw-primary) !important;
+}
+
+div[data-baseweb="checkbox"] span {
+  border-color: var(--tw-border) !important;
+}
+
+div[data-baseweb="checkbox"] label p {
+  color: var(--tw-text-main) !important;
+  font-weight: 500 !important;
+}
+
+/* ─── Alert / Notice Boxes ─── */
+div[data-testid="stAlert"] {
+  background-color: var(--tw-badge-user-bg) !important;
+  border: 1px solid var(--tw-badge-user-border) !important;
+  border-left: 4px solid var(--tw-status-watch) !important;
+  border-radius: var(--tw-radius-card) !important;
+  color: var(--tw-text-main) !important;
+}
+
+div[data-testid="stAlert"] * {
+  color: var(--tw-text-main) !important;
+}
+
+/* ─── Chart Containers ─── */
+div[data-testid="stImage"],
+div[data-testid="stArrowVegaLiteChart"] {
+  background-color: var(--tw-bg-page) !important;
+  border-radius: var(--tw-radius-card) !important;
+  border: 1px solid var(--tw-border) !important;
+  padding: 4px !important;
+}
+
+/* ─── Dataframes / Tables ─── */
+div[data-testid="stDataFrame"] table,
+div[data-testid="stTable"] table {
+  font-family: var(--tw-font) !important;
+  font-size: var(--tw-size-body) !important;
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+div[data-testid="stDataFrame"] thead th,
+div[data-testid="stTable"] thead th {
+  background-color: var(--tw-primary-tint) !important;
+  color: var(--tw-primary-dark) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  border-bottom: 2px solid var(--tw-border) !important;
+  padding: 8px 12px !important;
+}
+
+div[data-testid="stDataFrame"] tbody td,
+div[data-testid="stTable"] tbody td {
+  border-bottom: 1px solid var(--tw-border) !important;
+  color: var(--tw-text-main) !important;
+  padding: 7px 12px !important;
+  font-size: 13px !important;
+}
+
+/* ─── Dividers ─── */
+hr {
+  border-color: var(--tw-border) !important;
+  opacity: 0.8 !important;
+  margin: 1.2rem 0 !important;
+}
+
+/* ─── Glass Cards (Clinical Style) ─── */
+.sim-glass-card {
+  background-color: var(--tw-bg-card) !important;
+  border: 1px solid var(--tw-border) !important;
+  border-radius: var(--tw-radius-card) !important;
+  padding: var(--tw-pad-card) !important;
+  box-shadow: var(--tw-shadow-card) !important;
+}
+
+/* ─── Biometric Summary Cards ─── */
+.biometric-card {
+  background-color: var(--tw-bg-card);
+  border: 1px solid var(--tw-border);
+  border-radius: var(--tw-radius-card);
+  padding: 14px 16px;
+  box-shadow: var(--tw-shadow-card);
+  transition: border-color 0.15s ease;
+}
+
+.biometric-card:hover {
+  border-color: var(--tw-primary);
+}
+
+.biometric-card .card-title {
+  color: var(--tw-text-secondary);
+  font-size: var(--tw-size-label);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.biometric-card .card-val {
+  color: var(--tw-text-main);
+  font-size: var(--tw-size-card-value);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.biometric-card .card-sub {
+  color: var(--tw-text-secondary);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* ─── Research Disclaimer Banner ─── */
+.research-banner {
+  background-color: var(--tw-badge-user-bg);
+  border: 1px solid var(--tw-badge-user-border);
+  border-left: 4px solid var(--tw-status-watch);
+  border-radius: var(--tw-radius-card);
+  padding: 10px 18px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.research-banner .banner-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-text-main);
+}
+
+.research-banner .banner-sub {
+  font-size: 11px;
+  color: var(--tw-text-secondary);
+  margin-top: 2px;
+}
+
+.research-banner .banner-pill {
+  background-color: var(--tw-primary-tint);
+  border: 1px solid var(--tw-primary);
+  color: var(--tw-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+/* ─── Provenance Key ─── */
+.prov-key {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--tw-size-label);
+  color: var(--tw-text-secondary);
+  padding: 4px 0;
+}
+
+/* ─── Risk Panel Classes ─── */
+.risk-panel {
+  background-color: var(--tw-bg-card);
+  border: 1px solid var(--tw-border);
+  border-radius: var(--tw-radius-card);
+  padding: 16px 20px;
+  box-shadow: var(--tw-shadow-card);
+  margin-bottom: 16px;
+}
+.risk-panel.risk-ok { border-left: 5px solid var(--tw-status-ok); }
+.risk-panel.risk-watch { border-left: 5px solid var(--tw-status-watch); }
+.risk-panel.risk-high { border-left: 5px solid var(--tw-status-high); }
+
+/* ─── Patient Header ─── */
+.patient-header {
+  background-color: var(--tw-bg-card);
+  border: 1px solid var(--tw-border);
+  border-radius: var(--tw-radius-card);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--tw-shadow-card);
+}
+
+/* ─── Responsive: 1024px without horizontal scroll ─── */
+@media (max-width: 1280px) {
+  .biometric-card .card-val {
+    font-size: 22px;
+  }
+}

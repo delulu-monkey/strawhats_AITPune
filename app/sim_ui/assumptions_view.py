@@ -65,7 +65,7 @@ ASSUMPTION_CATEGORIES = [
         ],
     },
     {
-        "category": "Dawn Effect & Circadian Rhythm",
+        "category": "Dawn Effect and Circadian Rhythm",
         "parameters": [
             ("DAWN_EFFECT_START_HOUR", 4.0, "24h clock", "Circadian cortisol / growth hormone surge initiation"),
             ("DAWN_EFFECT_END_HOUR", 8.0, "24h clock", "Circadian dawn phenomenon conclusion"),
@@ -80,7 +80,7 @@ ASSUMPTION_CATEGORIES = [
         ],
     },
     {
-        "category": "Sensor Noise & Behavioral Unlogged Snacks",
+        "category": "Sensor Noise and Behavioral Unlogged Snacks",
         "parameters": [
             ("SENSOR_AR1_PHI", 0.85, "autocorrelation", "Continuous sensor interstitial drift AR(1) coefficient"),
             ("SENSOR_NOISE_SD", 3.0, "mg/dL SD", "Stochastic noise standard deviation per 5-min epoch"),
@@ -93,21 +93,21 @@ ASSUMPTION_CATEGORIES = [
 
 def render_assumptions_view() -> None:
     """Main entry point for Section: Simulation Assumptions."""
-    st.markdown("## 🔬 Virtual Patient Simulation Assumptions")
+    st.markdown("## Virtual Patient Simulation Assumptions")
     st.caption(
         "Complete physiological parameter specification. In strict adherence to **Honesty Rule 4**, "
         "every parameter is an **explicit assumption, not learned from data**."
     )
 
     st.info(
-        "💡 **Transparency Guarantee for Judges & Clinicians:** Every constant below is defined "
+        "**Transparency Guarantee for Judges and Clinicians:** Every constant below is defined "
         "in `src/sim/assumptions.py`. None of these effect sizes are hidden inside machine learning weights; "
         "each has an explicit physiological rationale and was calibrated against real CGMacros clinical cohorts in Part 2."
     )
 
     # Render Categorized Tables
     for cat in ASSUMPTION_CATEGORIES:
-        st.markdown(f"#### {cat['category']} {badge_html('SIMULATED')}")
+        st.markdown(f"#### {cat['category']} {badge_html('SIMULATED')}", unsafe_allow_html=True)
         table_rows = []
         for name, val, unit, rat in cat["parameters"]:
             table_rows.append({
@@ -122,7 +122,7 @@ def render_assumptions_view() -> None:
     st.divider()
 
     # Raw Source File Inspector
-    st.markdown("### 📄 Complete Source File (`src/sim/assumptions.py`)")
+    st.markdown("### Complete Source File (`src/sim/assumptions.py`)")
     assumptions_path = Path("src/sim/assumptions.py")
     if assumptions_path.exists():
         with open(assumptions_path, "r", encoding="utf-8") as fp:

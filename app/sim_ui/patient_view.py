@@ -1,19 +1,20 @@
 """
-Patient View: Simulation, Multi-Tab Exploration, Risk & What-If.
-================================================================
+Patient View: Simulation, Biometrics, Spike Risk & What-If.
+============================================================
 
-Tabs:
-1. Profile and labs
-2. Diagnoses, medications and genetics
-3. Wearables (glucose + meals, sleep hypnogram, steps, HR, HRV)
-4. Meal log
-5. Spike Risk & Meal What-If (with time slider, XGBoost spike model, SHAP, dish what-if)
+Layout (in strict adherence to clinical workspace specification):
+1. Patient header: name, age, sex, diagnosis summary, time-of-day slider.
+2. Row of six summary cards: heart rate, glucose, HbA1c, sleep, HRV, steps with trend lines.
+3. Risk panel: risk level (LOW/WATCH/HIGH), top reasons (SHAP), explanation.
+4. 24-hour glucose chart with meals, 180 mg/dL line, and 2-hour prediction window.
+5. Sensor telemetry grid: sleep hypnogram, steps, HR & HRV.
+6. Clinical records: profile & labs table, diagnoses, medications, genetics, meal log & what-if.
 """
 
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time, date
 from typing import Dict, Any, List
 
 import matplotlib
@@ -32,7 +33,17 @@ from app.sim_ui.common import (
     run_simulation_cached,
 )
 from app.sim_ui.badges import badge_html, label_with_badge
-from app.sim_ui.theme import render_patient_body_overview
+from app.sim_ui.theme import (
+    render_patient_body_overview,
+    BG_APP,
+    PRIMARY, PRIMARY_DARK, PRIMARY_TINT, BORDER,
+    TEXT_MAIN, TEXT_SECONDARY,
+    CHART_LINE_MAIN, CHART_LINE_BASELINE, CHART_THRESHOLD,
+    CHART_HYPO, CHART_MEAL, CHART_RANGE_FILL,
+    CHART_SLEEP, CHART_STEPS, CHART_HR, CHART_HRV,
+    STATUS_OK, STATUS_WATCH, STATUS_HIGH,
+    BADGE_REAL_BG, BADGE_REAL_BORDER, BADGE_REAL_TEXT,
+)
 
 # Model thresholds and caps
 THR = 180.0
@@ -64,217 +75,388 @@ FEATURE_LABELS = {
 
 
 def render_patient_view() -> None:
-    """Main entry point for Section 2: Patient View."""
+    """Main entry point for Section: Patient View."""
     all_patients = list_patients(include_presets=True)
     if not all_patients:
         st.warning("No virtual patients available. Please create one in the Patients directory.")
         return
 
     patient_ids = [p["id"] for p in all_patients]
-    default_id = st.session_state.get("selected_patient_id", "well_controlled_45")
-    if default_id not in patient_ids:
-        default_id = patient_ids[0]
-
-    # Header controls
-    sel_col, dur_col = st.columns([3, 1])
-    selected_id = sel_col.selectbox(
-        "Select Virtual Patient",
-        patient_ids,
-        index=patient_ids.index(default_id),
-        format_func=lambda pid: next((f"{p['name']} ({p['type'].upper()})" for p in all_patients if p["id"] == pid), pid),
-        key="patient_view_selector",
-    )
-    st.session_state["selected_patient_id"] = selected_id
-
-    days_sim = dur_col.slider("Simulation Horizon (days)", min_value=1, max_value=14, value=7)
+    selected_id = st.session_state.get("selected_patient_id", "well_controlled_45")
+    if selected_id not in patient_ids:
+        selected_id = patient_ids[0]
+        st.session_state["selected_patient_id"] = selected_id
 
     # Load patient dataclass
     patient = load_patient(selected_id)
     prov_map = get_provenance_map(patient.to_dict())
 
-    # Patient Header Banner
-    with st.container():
-        st.markdown(
-            f"### 🔬 {patient.name} {badge_html('SIMULATED')}"
-        )
-        if patient.description:
-            st.caption(f"**Clinical profile:** {patient.description}")
-        st.markdown(
-            f"**Demographics:** Age {patient.age} • {patient.sex} • Height {patient.height_cm} cm • "
-            f"Weight {patient.weight_kg} kg • **BMI {patient.bmi:.1f} kg/m²** • "
-            f"**HbA1c {patient.hba1c:.1f}%** • Seed: `{patient.seed}`"
-        )
-
-    # Run / Retrieve Cached Simulation
+    # Run / retrieve cached simulation (7-day standard horizon)
     p_json = json.dumps(patient.to_dict())
-    gdf, sdf, feats = run_simulation_cached(p_json, days=days_sim)
+    gdf, sdf, feats = run_simulation_cached(p_json, days=7)
 
-    # Stylised Human Body Biometric Overview Card (Part 7)
-    render_patient_body_overview(patient, simulation_df=gdf, prov_map=prov_map)
+    # Available dates in simulation
+    unique_dates = sorted(feats["time"].dt.date.unique())
+    chosen_day_idx = min(1, len(unique_dates) - 1)
+
+    # ─── 1. Patient Header with Demographics and Time Slider ────────────────
+    st.markdown(
+        f"""
+        <div class="patient-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 20px; font-weight: 700; color: {PRIMARY_DARK};">
+                            {patient.name}
+                        </span>
+                        {badge_html('SIMULATED')}
+                    </div>
+                    <div style="font-size: 13px; color: {TEXT_SECONDARY}; margin-top: 4px;">
+                        Age {patient.age} · {'Male' if patient.sex == 'M' else 'Female'} ·
+                        Height {patient.height_cm:.0f} cm · Weight {patient.weight_kg:.1f} kg ·
+                        <strong>BMI {patient.bmi:.1f} kg/m²</strong> ·
+                        <strong>HbA1c {patient.hba1c:.1f}%</strong> ·
+                        Fasting Glu {patient.fasting_glucose:.0f} mg/dL · Seed: <code>{patient.seed}</code>
+                    </div>
+                    <div style="font-size: 12px; color: {TEXT_MAIN}; margin-top: 4px; font-weight: 500;">
+                        Clinical summary: {patient.description or 'Synthetic patient persona.'}
+                    </div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Date and Time-of-Day Slider Row
+    slider_c1, slider_c2 = st.columns([1, 3])
+    with slider_c1:
+        chosen_date = st.selectbox(
+            "Evaluation Date",
+            unique_dates,
+            index=chosen_day_idx,
+            format_func=lambda d: d.strftime("%A, %d %b"),
+            key="pv_eval_date",
+        )
+
+    day_feats = feats[feats["time"].dt.date == chosen_date]
+    if day_feats.empty:
+        day_feats = feats.iloc[:288]
+
+    tmin = day_feats["time"].min().to_pydatetime()
+    tmax = day_feats["time"].max().to_pydatetime()
+    default_val = tmin + timedelta(hours=12)
+    if default_val > tmax:
+        default_val = tmin + (tmax - tmin) / 2
+
+    with slider_c2:
+        chosen_time = st.slider(
+            "Time-of-Day Slider (Evaluation Moment t0)",
+            min_value=tmin,
+            max_value=tmax,
+            value=default_val,
+            step=timedelta(minutes=5),
+            format="HH:mm",
+            key="pv_eval_time_slider",
+            help="Select instantaneous moment to inspect spike risk and continuous sensor telemetry.",
+        )
+
+    # Locate closest 5-minute epoch
+    pos = (day_feats["time"] - pd.Timestamp(chosen_time)).abs().argmin()
+    eval_row = day_feats.iloc[pos]
+    t0 = eval_row["time"]
+
+    # ─── 2. Row of Six Summary Cards with Trend Lines ───────────────────────
+    render_patient_body_overview(
+        patient,
+        simulation_df=gdf,
+        prov_map=prov_map,
+        current_time=t0,
+    )
+
+    # ─── 3. Risk Panel: Spike Risk Assessment at t0 ─────────────────────────
+    risk_model, meal_model, explainer = load_models()
+    risk_feats = risk_model["features"]
+    x_eval = day_feats.iloc[[pos]][risk_feats].astype(float)
+    glu_val = eval_row["glu_now"]
+
+    st.markdown(
+        f"""
+        <div style="font-size: 15px; font-weight: 700; color: {PRIMARY_DARK}; margin: 8px 0 6px 0;">
+            2-Hour Glucose Spike Risk Assessment at {t0.strftime('%H:%M')} {badge_html('SIMULATED')}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    prob = float(risk_model["model"].predict_proba(x_eval)[0, 1])
+
+    if glu_val > THR:
+        risk_class = "risk-high"
+        level_str = "CURRENTLY EXCEEDING THRESHOLD"
+        badge_color = STATUS_HIGH
+        desc_str = f"Current glucose is already {glu_val:.0f} mg/dL (above {THR} mg/dL threshold)."
+    elif prob >= HIGH:
+        risk_class = "risk-high"
+        level_str = f"HIGH RISK ({prob:.1%})"
+        badge_color = STATUS_HIGH
+        desc_str = "High statistical likelihood of glucose excursion exceeding 180 mg/dL within the next 2 hours."
+    elif prob >= WATCH:
+        risk_class = "risk-watch"
+        level_str = f"WATCH ({prob:.1%})"
+        badge_color = STATUS_WATCH
+        desc_str = "Moderate spike probability. Close glycemic surveillance advised."
+    else:
+        risk_class = "risk-ok"
+        level_str = f"LOW RISK ({prob:.1%})"
+        badge_color = STATUS_OK
+        desc_str = "Glucose expected to remain safely below the 180 mg/dL threshold over the next 2 hours."
+
+    # Compute SHAP top positive and negative reasons
+    sv = explainer.shap_values(x_eval)
+    sv = sv[1] if isinstance(sv, list) else sv
+    groups = {f: f for f in risk_feats}
+    groups["hour_sin"] = groups["hour_cos"] = "time_of_day"
+    contrib = pd.Series(sv[0], index=risk_feats).groupby(groups).sum().sort_values()
+    contrib = contrib.drop(["age", "bmi", "male"], errors="ignore")
+
+    def describe_feature(f_name: str) -> str:
+        label, fmt = FEATURE_LABELS.get(f_name, (f_name, "{:.1f}"))
+        if f_name == "time_of_day":
+            return f"{label}: {t0.strftime('%H:%M')}"
+        val = eval_row.get(f_name, 0.0)
+        return f"{label}: {fmt.format(val)}"
+
+    top_pos = contrib[contrib > 0].tail(2)[::-1]
+    top_neg = contrib[contrib < 0].head(2)
+
+    pos_reasons_html = "".join([f"<div>• <strong>Raises risk:</strong> {describe_feature(f)}</div>" for f in top_pos.index])
+    neg_reasons_html = "".join([f"<div>• <strong>Lowers risk:</strong> {describe_feature(f)}</div>" for f in top_neg.index])
+
+    risk_panel_html = f"""
+    <div class="risk-panel {risk_class}">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 16px; font-weight: 700; color: {badge_color};">
+                {level_str}
+            </div>
+            <div style="font-size: 12px; color: {TEXT_SECONDARY};">
+                Evaluation moment: {t0.strftime('%a %d %b %H:%M')} · Interstitial Glucose: {glu_val:.0f} mg/dL
+            </div>
+        </div>
+        <div style="font-size: 13px; color: {TEXT_MAIN}; margin: 6px 0 10px 0;">
+            {desc_str}
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; color: {TEXT_MAIN};
+                    background-color: {BG_APP}; border: 1px solid {BORDER}; border-radius: 6px; padding: 10px 14px;">
+            <div>{pos_reasons_html if pos_reasons_html else '<div>• No acute risk-raising triggers</div>'}</div>
+            <div>{neg_reasons_html if neg_reasons_html else '<div>• No protective mitigators active</div>'}</div>
+        </div>
+        <div style="font-size: 11px; color: {TEXT_SECONDARY}; margin-top: 8px;">
+            Spike probability represents the calibrated likelihood of exceeding 180 mg/dL in the subsequent 120-minute window.
+            Trained on CGMacros clinical dataset features.
+        </div>
+    </div>
+    """
+    st.markdown(risk_panel_html, unsafe_allow_html=True)
+
+    # ─── 4. 24-Hour Glucose Chart with Prediction Window ────────────────────
+    st.markdown(
+        f"""
+        <div style="font-size: 15px; font-weight: 700; color: {PRIMARY_DARK}; margin: 12px 0 4px 0;">
+            24-Hour Continuous Glucose Trajectory & 2-Hour Prediction Window {badge_html('SIMULATED')}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Filter 24h of simulation around chosen date
+    day_start = pd.Timestamp(chosen_date)
+    day_end = day_start + timedelta(days=1)
+    day_cgm = gdf[(gdf["time"] >= day_start) & (gdf["time"] < day_end)].copy()
+    if day_cgm.empty:
+        day_cgm = gdf.iloc[:288].copy()
+
+    fig_cgm, ax_cgm = plt.subplots(figsize=(11, 3.4))
+    ax_cgm.plot(day_cgm["time"], day_cgm["libre"], color=CHART_LINE_MAIN, lw=1.8, label="Libre CGM")
+    ax_cgm.axhline(THR, color=CHART_THRESHOLD, ls="--", lw=1.2, label="Spike Threshold (180 mg/dL)")
+    ax_cgm.axhline(70, color=CHART_HYPO, ls=":", lw=1.0, label="Hypo Threshold (70 mg/dL)")
+    ax_cgm.axhspan(70, 180, color=CHART_RANGE_FILL, alpha=0.05, label="Target Range (70–180)")
+
+    # 2-Hour Prediction Window highlight
+    win_end = min(t0 + timedelta(hours=2), day_end)
+    ax_cgm.axvspan(t0, win_end, color=PRIMARY, alpha=0.10, label="2h Prediction Window")
+    ax_cgm.axvline(t0, color=PRIMARY_DARK, lw=1.5, ls="-", label=f"Evaluation t0 ({t0.strftime('%H:%M')})")
+
+    # Logged meals in the 24h window
+    day_meals = day_cgm[day_cgm["carbs"] > 0]
+    if not day_meals.empty:
+        for _, mrow in day_meals.iterrows():
+            ax_cgm.axvline(mrow["time"], color=CHART_MEAL, alpha=0.5, ls="--", lw=1)
+        ax_cgm.scatter(
+            day_meals["time"],
+            day_meals["libre"],
+            color=CHART_MEAL,
+            s=28,
+            zorder=6,
+            label="Logged Meal",
+        )
+
+    ax_cgm.set_ylabel("Glucose (mg/dL)", fontsize=9)
+    ax_cgm.legend(loc="upper right", fontsize=8, ncol=3)
+    ax_cgm.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+    fig_cgm.autofmt_xdate()
+    st.pyplot(fig_cgm)
+    plt.close(fig_cgm)
 
     st.divider()
 
-    # Tabs
-    tab_profile, tab_clinical, tab_wearables, tab_meals, tab_risk = st.tabs([
-        "📋 Profile & Labs",
-        "🧬 Clinical & Genetics",
-        "⌚ Wearables & Sensors",
-        "🍽️ Meal Log",
-        "⚡ Spike Risk & What-If",
+    # ─── 5. Sensor Telemetry Grid (Sleep, Steps, HR, HRV) ───────────────────
+    st.markdown(
+        f"""
+        <div style="font-size: 15px; font-weight: 700; color: {PRIMARY_DARK}; margin: 8px 0 6px 0;">
+            Continuous Sensor Telemetry Grid (24-Hour Sensor Alignment) {badge_html('SIMULATED')}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    grid_c1, grid_c2 = st.columns(2)
+
+    # Left: Sleep Stage Hypnogram
+    with grid_c1:
+        st.markdown(f"**Sleep Architecture (Hypnogram)** {badge_html('SIMULATED')}")
+        stage_map = {"awake": 3, "rem": 2, "light": 1, "deep": 0}
+        day_cgm["stage_num"] = day_cgm["sleep_stage"].map(stage_map)
+
+        fig_sl, ax_sl = plt.subplots(figsize=(6, 2.5))
+        ax_sl.step(day_cgm["time"], day_cgm["stage_num"], where="post", color=CHART_SLEEP, lw=1.5)
+        ax_sl.set_yticks([0, 1, 2, 3])
+        ax_sl.set_yticklabels(["Deep", "Light", "REM", "Awake"], fontsize=8)
+        ax_sl.set_ylabel("Stage", fontsize=8)
+        ax_sl.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+        fig_sl.autofmt_xdate()
+        st.pyplot(fig_sl)
+        plt.close(fig_sl)
+
+    # Right: Steps & Physical Activity
+    with grid_c2:
+        st.markdown(f"**Physical Activity & Steps** {badge_html('SIMULATED')}")
+        fig_st, ax_st = plt.subplots(figsize=(6, 2.5))
+        ax_st.bar(day_cgm["time"], day_cgm["steps"], width=0.003, color=CHART_STEPS, alpha=0.8)
+        ax_st.set_ylabel("Steps / 5m", fontsize=8)
+        ax_st.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+        fig_st.autofmt_xdate()
+        st.pyplot(fig_st)
+        plt.close(fig_st)
+
+    # Heart Rate & HRV Telemetry
+    fig_hr, ax_hr = plt.subplots(figsize=(11, 2.3))
+    ax_hr.plot(day_cgm["time"], day_cgm["hr"], color=CHART_HR, lw=1.3, label="Heart Rate (bpm)")
+    ax_hr.plot(day_cgm["time"], day_cgm["hrv_rmssd"], color=CHART_HRV, lw=1.3, ls="--", label="HRV RMSSD (ms)")
+    ax_hr.axvline(t0, color=PRIMARY_DARK, lw=1.2, ls=":", label="t0")
+    ax_hr.set_ylabel("BPM / ms", fontsize=8)
+    ax_hr.legend(loc="upper right", fontsize=8)
+    ax_hr.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+    fig_hr.autofmt_xdate()
+    st.pyplot(fig_hr)
+    plt.close(fig_hr)
+
+    st.divider()
+
+    # ─── 6. Profile & Labs Table, Diagnoses, Medications, Genetics, Meals ───
+    st.markdown(
+        f"""
+        <div style="font-size: 15px; font-weight: 700; color: {PRIMARY_DARK}; margin: 8px 0 6px 0;">
+            Clinical Profile, Genetic Markers & Dietary Logs {badge_html('SIMULATED')}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    t_prof, t_meds, t_gen, t_meals, t_whatif = st.tabs([
+        "Profile & Labs Table",
+        "Diagnoses & Medications",
+        "Genetic Markers",
+        "Meal Log",
+        "Meal What-If Sandbox",
     ])
 
-    # ── TAB 1: Profile & Labs ────────────────────────────────────────────────
-    with tab_profile:
-        st.markdown(f"#### Demographics & Laboratory Panel {badge_html('SIMULATED')}")
-        
+    with t_prof:
+        st.markdown(f"#### Demographics and Laboratory Panel {badge_html('SIMULATED')}")
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Age", f"{patient.age} yrs")
         c2.metric("Sex", "Male" if patient.sex == "M" else "Female")
         c3.metric("Height / Weight", f"{patient.height_cm:.0f} cm / {patient.weight_kg:.1f} kg")
         c4.metric("Body Mass Index (BMI)", f"{patient.bmi:.1f} kg/m²")
 
-        st.divider()
-        st.markdown("##### Glycemic & Metabolic Biomarkers")
         g1, g2, g3, g4 = st.columns(4)
-        g1.metric("HbA1c", f"{patient.hba1c:.1f}%", help="Glycated hemoglobin")
+        g1.metric("HbA1c", f"{patient.hba1c:.1f}%")
         g2.metric("Fasting Glucose", f"{patient.fasting_glucose:.0f} mg/dL")
-        g3.metric("Effective Fasting Glucose", f"{patient.effective_fasting_glucose:.0f} mg/dL", help="Calculated with insulin resistance & medications")
+        g3.metric("Effective Fasting Glucose", f"{patient.effective_fasting_glucose:.0f} mg/dL")
         g4.metric("Fasting Insulin", f"{patient.insulin:.1f} μU/mL")
 
         st.divider()
-        st.markdown("##### Lipid Panel")
-        l1, l2, l3, l4 = st.columns(4)
-        l1.metric("Triglycerides", f"{patient.triglycerides:.0f} mg/dL")
-        l2.metric("Total Cholesterol", f"{patient.total_cholesterol:.0f} mg/dL")
-        l3.metric("HDL Cholesterol", f"{patient.hdl:.0f} mg/dL")
-        l4.metric("LDL Cholesterol", f"{patient.ldl:.0f} mg/dL")
+        st.markdown("##### Complete Laboratory Panel Table")
+        labs_data = [
+            {"Parameter": "Age", "Value": f"{patient.age}", "Unit": "years", "Provenance": "SIMULATED", "Notes": "Demographic baseline"},
+            {"Parameter": "Sex", "Value": "Male" if patient.sex == "M" else "Female", "Unit": "", "Provenance": "SIMULATED", "Notes": "Biological sex"},
+            {"Parameter": "Height", "Value": f"{patient.height_cm:.0f}", "Unit": "cm", "Provenance": "SIMULATED", "Notes": "Physical measurement"},
+            {"Parameter": "Weight", "Value": f"{patient.weight_kg:.1f}", "Unit": "kg", "Provenance": "SIMULATED", "Notes": "Physical measurement"},
+            {"Parameter": "Body Mass Index (BMI)", "Value": f"{patient.bmi:.1f}", "Unit": "kg/m²", "Provenance": "SIMULATED", "Notes": f"Target: 18.5–24.9"},
+            {"Parameter": "HbA1c", "Value": f"{patient.hba1c:.1f}", "Unit": "%", "Provenance": "SIMULATED", "Notes": "Glycated hemoglobin (PDL standard)"},
+            {"Parameter": "Fasting Glucose", "Value": f"{patient.fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Overnight laboratory fasting"},
+            {"Parameter": "Effective Fasting Glucose", "Value": f"{patient.effective_fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Modelled with IR & medications"},
+            {"Parameter": "Fasting Insulin", "Value": f"{patient.insulin:.1f}", "Unit": "μU/mL", "Provenance": "SIMULATED", "Notes": "Endogenous insulin concentration"},
+            {"Parameter": "Modelled IR Index", "Value": f"{patient.insulin_resistance:.2f}", "Unit": "ratio", "Provenance": "SIMULATED", "Notes": "1.0 = healthy baseline sensitivity"},
+            {"Parameter": "Triglycerides", "Value": f"{patient.triglycerides:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Lipid profile (Normal < 150)"},
+            {"Parameter": "Total Cholesterol", "Value": f"{patient.total_cholesterol:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Lipid profile (Normal < 200)"},
+            {"Parameter": "HDL Cholesterol", "Value": f"{patient.hdl:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "High-density lipoprotein (> 40 M, > 50 F)"},
+            {"Parameter": "LDL Cholesterol", "Value": f"{patient.ldl:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Low-density lipoprotein (Optimal < 100)"},
+        ]
+        st.dataframe(pd.DataFrame(labs_data), use_container_width=True, hide_index=True)
 
-        st.divider()
-        st.markdown("##### Insulin Resistance (IR) Model")
-        ir_col1, ir_col2 = st.columns([1, 2])
-        ir_col1.metric("Modelled IR Index", f"{patient.insulin_resistance:.2f}", help="1.0 = baseline healthy sensitivity")
-        ir_col2.caption(
-            "Insulin resistance is derived additively from excess HbA1c, excess BMI (>22), "
-            "and polygenic risk variance. (Assumption, not learned from data)."
-        )
-
-    # ── TAB 2: Diagnoses, Medications & Genetics ─────────────────────────────
-    with tab_clinical:
-        st.markdown(f"#### Clinical Record & Genetics {badge_html('SIMULATED')}")
-        
-        col_diag, col_med = st.columns(2)
-        with col_diag:
-            st.markdown(f"##### Diagnoses {badge_html(prov_map.get('diagnoses', 'SIMULATED'))}")
+    with t_meds:
+        col_d, col_m = st.columns(2)
+        with col_d:
+            st.markdown(f"##### Chronic Diagnoses {badge_html(prov_map.get('diagnoses', 'SIMULATED'))}")
             if patient.diagnoses:
                 for d in patient.diagnoses:
-                    st.markdown(f"- 🩺 **{d}**")
+                    st.markdown(f"- **{d}**")
             else:
-                st.info("No recorded chronic diagnoses.")
-
-        with col_med:
-            st.markdown(f"##### Medications {badge_html(prov_map.get('medications', 'SIMULATED'))}")
+                st.info("No recorded diagnoses.")
+        with col_m:
+            st.markdown(f"##### Active Pharmacotherapy {badge_html(prov_map.get('medications', 'SIMULATED'))}")
             if patient.medications:
                 for m in patient.medications:
-                    st.markdown(f"- 💊 **{m}**")
+                    st.markdown(f"- **{m}**")
             else:
                 st.info("No active medications.")
 
-        st.divider()
+    with t_gen:
         st.markdown(f"##### Genetic Markers & Polygenic Risk {badge_html('SIMULATED')}")
-        
-        gen_m1, gen_m2 = st.columns([1, 2])
-        gen_m1.metric("Genetic Risk Score", f"{patient.genetic_markers.genetic_risk_score:.1f} / 100")
-        gen_m2.progress(patient.genetic_markers.genetic_risk_score / 100.0)
+        gm1, gm2 = st.columns([1, 2])
+        gm1.metric("Composite Risk Score", f"{patient.genetic_markers.genetic_risk_score:.1f} / 100")
+        gm2.progress(patient.genetic_markers.genetic_risk_score / 100.0)
 
-        st.markdown("**Variant Allele Counts (T2D Risk Variants):**")
         v_rows = []
-        variant_descriptions = {
+        variant_desc = {
             "TCF7L2": "Transcription factor 7-like 2 (Beta-cell function & GLP-1 secretion)",
             "PPARG": "Peroxisome proliferator-activated receptor gamma (Adipocyte insulin sensitivity)",
             "KCNJ11": "Potassium inwardly-rectifying channel (ATP-sensitive K+ channel in beta cells)",
             "CDKAL1": "CDK5 regulatory subunit associated protein 1-like 1 (Proinsulin conversion)",
             "SLC30A8": "Solute carrier family 30 member 8 (Zinc transporter 8 in secretory vesicles)",
         }
-        for v, count in patient.genetic_markers.variant_alleles.items():
+        for v, cnt in patient.genetic_markers.variant_alleles.items():
             v_rows.append({
                 "Gene Variant": v,
-                "Risk Alleles (0/1/2)": count,
-                "Biological Function": variant_descriptions.get(v, "T2D associated locus"),
+                "Risk Alleles (0/1/2)": cnt,
+                "Biological Mechanism": variant_desc.get(v, "T2D associated locus"),
                 "Provenance": "SIMULATED",
             })
         st.dataframe(pd.DataFrame(v_rows), use_container_width=True, hide_index=True)
 
-    # ── TAB 3: Wearables & Sensors ───────────────────────────────────────────
-    with tab_wearables:
-        st.markdown(f"#### Continuous Sensor Telemetry ({days_sim} Days) {badge_html('SIMULATED')}")
-        
-        # 1. Glucose Timeline with Meal Markers
-        st.markdown(f"##### 1. Continuous Glucose Monitoring (CGM) {badge_html('SIMULATED')}")
-        tir_good = ((gdf["libre"] >= 70) & (gdf["libre"] <= 180)).mean() * 100
-        tir_high = (gdf["libre"] > 180).mean() * 100
-        tir_low = (gdf["libre"] < 70).mean() * 100
-        
-        q1, q2, q3, q4 = st.columns(4)
-        q1.metric("Mean Glucose", f"{gdf['libre'].mean():.1f} mg/dL")
-        q2.metric("Time in Range (70–180)", f"{tir_good:.1f}%")
-        q3.metric("Time > 180 mg/dL", f"{tir_high:.1f}%")
-        q4.metric("Glucose SD", f"{gdf['libre'].std():.1f} mg/dL")
-
-        fig_cgm, ax_cgm = plt.subplots(figsize=(11, 3.8))
-        ax_cgm.plot(gdf["time"], gdf["libre"], color="#38bdf8", lw=1.5, label="Libre Glucose")
-        ax_cgm.axhline(180, color="#ef4444", ls="--", lw=1.2, label="Spike Threshold (180)")
-        ax_cgm.axhline(70, color="#f59e0b", ls="--", lw=1.0, label="Hypo Threshold (70)")
-        ax_cgm.axhspan(70, 180, color="#10b981", alpha=0.08, label="Target Range")
-
-        # Meal indicators
-        meal_pts = gdf[gdf["carbs"] > 0]
-        if not meal_pts.empty:
-            for _, mrow in meal_pts.iterrows():
-                ax_cgm.axvline(mrow["time"], color="#f97316", alpha=0.4, ls=":", lw=1)
-            ax_cgm.scatter(meal_pts["time"], meal_pts["libre"], color="#f97316", s=18, zorder=5, label="Meal Logged")
-
-        ax_cgm.set_ylabel("Glucose (mg/dL)", fontsize=9)
-        ax_cgm.legend(loc="upper right", fontsize=8)
-        fig_cgm.autofmt_xdate()
-        st.pyplot(fig_cgm)
-        plt.close(fig_cgm)
-
-        st.divider()
-
-        # 2. Sleep Hypnogram
-        st.markdown(f"##### 2. Sleep Architecture & Hypnogram {badge_html('SIMULATED')}")
-        stage_map = {"awake": 3, "rem": 2, "light": 1, "deep": 0}
-        gdf["stage_num"] = gdf["sleep_stage"].map(stage_map)
-        
-        fig_sleep, ax_sleep = plt.subplots(figsize=(11, 2.5))
-        ax_sleep.step(gdf["time"], gdf["stage_num"], where="post", color="#a855f7", lw=1.2)
-        ax_sleep.set_yticks([0, 1, 2, 3])
-        ax_sleep.set_yticklabels(["Deep", "Light", "REM", "Awake"], fontsize=8)
-        ax_sleep.set_ylabel("Sleep Stage", fontsize=9)
-        fig_sleep.autofmt_xdate()
-        st.pyplot(fig_sleep)
-        plt.close(fig_sleep)
-
-        st.divider()
-
-        # 3. Steps & Physical Activity
-        st.markdown(f"##### 3. Physical Activity & Steps {badge_html('SIMULATED')}")
-        fig_act, (ax_steps, ax_hr) = plt.subplots(2, 1, figsize=(11, 4.5), sharex=True)
-        ax_steps.bar(gdf["time"], gdf["steps"], width=0.003, color="#10b981", alpha=0.7)
-        ax_steps.set_ylabel("Steps / 5m", fontsize=9)
-
-        ax_hr.plot(gdf["time"], gdf["hr"], color="#ec4899", lw=1.2, label="Heart Rate (bpm)")
-        ax_hr.plot(gdf["time"], gdf["hrv_rmssd"], color="#6366f1", lw=1.2, ls="--", label="HRV RMSSD (ms)")
-        ax_hr.set_ylabel("HR / HRV", fontsize=9)
-        ax_hr.legend(loc="upper right", fontsize=8)
-        fig_act.autofmt_xdate()
-        st.pyplot(fig_act)
-        plt.close(fig_act)
-
-    # ── TAB 4: Meal Log ──────────────────────────────────────────────────────
-    with tab_meals:
-        st.markdown(f"#### Logged Meals & Nutritional Intake {badge_html('SIMULATED')}")
-        
+    with t_meals:
+        st.markdown(f"##### Logged Dietary Intake (7 Days) {badge_html('SIMULATED')}")
         meals_df = gdf[gdf["carbs"] > 0][["time", "meal_name", "carbs", "protein", "fat", "fiber", "act_kcal"]].copy()
         if not meals_df.empty:
             meals_df["time"] = meals_df["time"].dt.strftime("%Y-%m-%d %H:%M")
@@ -288,135 +470,14 @@ def render_patient_view() -> None:
                 "act_kcal": "Energy (kcal)",
             })
             st.dataframe(meals_df, use_container_width=True, hide_index=True)
-            
-            tot_carbs = meals_df["Carbs (g)"].sum()
-            avg_carbs = tot_carbs / max(days_sim, 1)
-            st.caption(f"Total simulated carbohydrate intake: {tot_carbs:.0f} g across {len(meals_df)} meals (~{avg_carbs:.0f} g/day).")
+            st.caption(f"Total simulated meals: {len(meals_df)} across 7 days (~{meals_df['Carbs (g)'].sum() / 7:.0f} g carbs/day).")
         else:
-            st.info("No meals were logged during this simulated window.")
+            st.info("No meals recorded.")
 
-    # ── TAB 5: Risk & What-If ────────────────────────────────────────────────
-    with tab_risk:
-        st.markdown(f"#### ⚡ 2-Hour Postprandial Glucose Spike Risk Assessment {badge_html('SIMULATED')}")
-        st.caption("Evaluates glucose excursion above 180 mg/dL within the next 2 hours using the XGBoost spike classifier.")
-
-        # Load models
-        risk_model, meal_model, explainer = load_models()
+    with t_whatif:
+        st.markdown(f"##### Meal What-If: Postprandial Response Simulation {badge_html('SIMULATED')}")
+        st.caption("Predicts peak glucose excursion within 2 hours if this meal is ingested at the current evaluation moment.")
         food_catalogue = load_indian_meals()
-        risk_feats = risk_model["features"]
-
-        # Date & Moment Selection Slider
-        unique_dates = sorted(feats["time"].dt.date.unique())
-        c_day, c_empty = st.columns([2, 2])
-        chosen_date = c_day.selectbox("Choose Day to Assess", unique_dates, index=min(1, len(unique_dates)-1))
-        
-        day_feats = feats[feats["time"].dt.date == chosen_date]
-        if day_feats.empty:
-            st.warning("No data for chosen day.")
-            return
-
-        tmin = day_feats["time"].min().to_pydatetime()
-        tmax = day_feats["time"].max().to_pydatetime()
-        default_val = tmin + (tmax - tmin) / 2
-
-        chosen_time = st.slider(
-            "Select Evaluation Moment (Time Slider)",
-            min_value=tmin,
-            max_value=tmax,
-            value=default_val,
-            step=timedelta(minutes=5),
-            format="HH:mm",
-        )
-
-        # Locate closest epoch
-        pos = (day_feats["time"] - pd.Timestamp(chosen_time)).abs().argmin()
-        eval_row = day_feats.iloc[pos]
-        t0 = eval_row["time"]
-        x_eval = day_feats.iloc[[pos]][risk_feats].astype(float)
-
-        st.divider()
-
-        # Risk Score Section
-        left_col, right_col = st.columns([3, 2])
-
-        with left_col:
-            st.markdown(f"##### Local Glucose Window Around {t0.strftime('%a %d %b, %H:%M')}")
-            win_df = feats[(feats["time"] >= t0 - timedelta(hours=6)) & (feats["time"] <= t0 + timedelta(hours=2))]
-            
-            fig_win, ax_win = plt.subplots(figsize=(7.5, 3.4))
-            past_df = win_df[win_df["time"] <= t0]
-            future_df = win_df[win_df["time"] >= t0]
-            
-            ax_win.plot(past_df["time"], past_df["glu_now"], color="#38bdf8", lw=2, label="Glucose so far")
-            ax_win.plot(future_df["time"], future_df["glu_now"], color="#38bdf8", ls="--", alpha=0.5, label="Next 2h outcome")
-            ax_win.axhline(THR, color="#ef4444", ls="--", lw=1, label="Threshold (180)")
-            ax_win.axvline(t0, color="#94a3b8", lw=1.2, label="Evaluation Point (t0)")
-
-            # Mark meals in window
-            m_win = gdf[(gdf["time"] >= win_df["time"].min()) & (gdf["time"] <= win_df["time"].max()) & (gdf["carbs"] > 0)]
-            for mt in m_win["time"]:
-                ax_win.axvline(mt, color="#f97316", alpha=0.7, lw=1.2)
-            if not m_win.empty:
-                ax_win.plot([], [], color="#f97316", label="Meal Logged")
-
-            ax_win.set_ylabel("mg/dL", fontsize=8)
-            ax_win.legend(loc="upper left", fontsize=7)
-            fig_win.autofmt_xdate()
-            st.pyplot(fig_win)
-            plt.close(fig_win)
-
-        with right_col:
-            st.markdown("##### Spike Risk Prediction")
-            
-            glu_val = eval_row["glu_now"]
-            if glu_val < 70:
-                st.warning("⚠️ Hypoglycemia Alert: Glucose is below 70 mg/dL. This tool predicts spikes only.")
-            
-            if glu_val > THR:
-                st.info(f"ℹ️ Current glucose is already {glu_val:.0f} mg/dL (above {THR}). Model evaluates transitions into spikes.")
-            else:
-                prob = float(risk_model["model"].predict_proba(x_eval)[0, 1])
-                
-                # Low / Watch / High thresholds (0.75 and 0.91)
-                if prob >= HIGH:
-                    st.error(f"🚨 **HIGH RISK** ({prob:.1%})\n\nSignificant probability of glucose spike > 180 mg/dL in next 2 hours.")
-                elif prob >= WATCH:
-                    st.warning(f"⚠️ **WATCH** ({prob:.1%})\n\nModerate risk of spike. Continuous monitoring recommended.")
-                else:
-                    st.success(f"✅ **LOW RISK** ({prob:.1%})\n\nGlucose expected to stay at or below 180 mg/dL.")
-
-                # SHAP Explanation Grouped as in dashboard.py
-                st.markdown("###### Top Reasons (SHAP Contributions)")
-                sv = explainer.shap_values(x_eval)
-                sv = sv[1] if isinstance(sv, list) else sv
-                
-                groups = {f: f for f in risk_feats}
-                groups["hour_sin"] = groups["hour_cos"] = "time_of_day"
-                contrib = pd.Series(sv[0], index=risk_feats).groupby(groups).sum().sort_values()
-                # Exclude static age/bmi/male
-                contrib = contrib.drop(["age", "bmi", "male"], errors="ignore")
-
-                def describe_feature(f_name):
-                    label, fmt = FEATURE_LABELS.get(f_name, (f_name, "{:.1f}"))
-                    if f_name == "time_of_day":
-                        return f"{label}: {t0.strftime('%H:%M')}"
-                    val = eval_row.get(f_name, 0.0)
-                    return f"{label}: {fmt.format(val)}"
-
-                top_positive = contrib[contrib > 0].tail(3)[::-1]
-                top_negative = contrib[contrib < 0].head(2)
-
-                for f in top_positive.index:
-                    st.write(f"▲ **Raises risk:** {describe_feature(f)}")
-                for f in top_negative.index:
-                    st.write(f"▼ **Lowers risk:** {describe_feature(f)}")
-
-        st.divider()
-
-        # Meal What-If Sandbox
-        st.markdown(f"#### 🍛 Meal What-If: Postprandial Response Simulation {badge_html('SIMULATED')}")
-        st.caption("Predicts peak glucose excursion within 2 hours if the patient consumes a specific meal right now.")
-
         chosen_dishes = st.multiselect("Select Dishes from Catalogue", food_catalogue["dish"].tolist())
         totals = {"carbs": 0.0, "protein": 0.0, "fat": 0.0, "fiber": 0.0}
 
@@ -429,14 +490,12 @@ def render_patient_view() -> None:
                 for macro in totals:
                     totals[macro] += p_num * dish_row[macro]
 
-            # Caps
             capped = {k: min(v, CAPS[k]) for k, v in totals.items()}
             st.markdown(
-                f"**Total Meal Nutrition:** {totals['carbs']:.0f}g Carbs • {totals['protein']:.0f}g Protein • "
-                f"{totals['fat']:.0f}g Fat • {totals['fiber']:.0f}g Fiber"
+                f"**Meal Nutrition:** {totals['carbs']:.0f}g Carbs · {totals['protein']:.0f}g Protein · "
+                f"{totals['fat']:.0f}g Fat · {totals['fiber']:.0f}g Fiber"
             )
 
-            # Build prediction row for Random Forest meal response
             m_row = pd.DataFrame([{
                 **capped,
                 "glu0": eval_row["glu_now"],
@@ -460,12 +519,9 @@ def render_patient_view() -> None:
             )
             with r_col2:
                 if predicted_peak - MEAL_ERR > THR:
-                    st.error(f"Likely to exceed spike threshold ({THR} mg/dL).")
+                    st.error(f"High risk of exceeding spike threshold ({THR} mg/dL).")
                 elif predicted_peak + MEAL_ERR > THR:
-                    st.warning(f"Could exceed spike threshold ({THR} mg/dL).")
+                    st.warning(f"Borderline: could exceed spike threshold ({THR} mg/dL).")
                 else:
-                    st.success(f"Unlikely to exceed spike threshold ({THR} mg/dL).")
-                st.caption(
-                    "Model trained on 44 CGMacros clinical meal records. "
-                    "Database dish nutritional values are estimated."
-                )
+                    st.success(f"Favorable: unlikely to exceed spike threshold ({THR} mg/dL).")
+                st.caption("Random Forest meal response model calibrated on CGMacros clinical meal records.")

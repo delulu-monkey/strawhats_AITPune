@@ -1,218 +1,168 @@
 """
-Visual Styling & Theme for Virtual Patient Simulation Workspace (Part 7).
-==========================================================================
+Visual Styling & Theme for Virtual Patient Simulation Workspace.
+=================================================================
 
-1. Dark navy background (#070d1e / #0b132b / #0f172a).
-2. Glass-style cards with backdrop blur and subtle cyan borders.
-3. Cyan glow accents (#06b6d4 / #38bdf8 / #22d3ee).
-4. Stylised human-body outline made strictly as inline SVG (no external or downloaded images).
-5. Small data cards around the SVG (glucose, heart rate, sleep, steps, key labs) with provenance badges.
-6. Dim background with high-contrast chart areas.
+Clinical white-and-blue design tokens.
+All visual constants live here. CSS is in style.css, injected once.
 """
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional
+from pathlib import Path
+from typing import Dict, Any, Optional, List
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import streamlit as st
 
-from app.sim_ui.badges import badge_html
+
+# ─── Design tokens (mirrored in style.css as CSS custom properties) ─────────
+
+# Page & Backgrounds
+BG_PAGE = "#FFFFFF"
+BG_APP = "#F5F8FC"
+BG_CARD = "#FFFFFF"
+
+# Borders & Dividers
+BORDER = "#E3E9F2"
+
+# Primary Palette
+PRIMARY = "#1D5FD1"
+PRIMARY_DARK = "#0F3D91"
+PRIMARY_TINT = "#EAF1FD"
+
+# Text
+TEXT_MAIN = "#0F1B2D"
+TEXT_SECONDARY = "#5B6B82"
+
+# Status (muted, strictly for clinical meaning)
+STATUS_OK = "#2F855A"
+STATUS_WATCH = "#B7791F"
+STATUS_HIGH = "#C0392B"
+
+# Charts
+CHART_LINE_MAIN = PRIMARY          # blue
+CHART_LINE_BASELINE = "#94A3B8"    # grey
+CHART_THRESHOLD = STATUS_HIGH      # red threshold line (180 mg/dL)
+CHART_HYPO = STATUS_WATCH          # amber hypo line (70 mg/dL)
+CHART_MEAL = "#C05621"             # burnt orange for meal markers
+CHART_RANGE_FILL = STATUS_OK       # green target range band
+CHART_SLEEP = PRIMARY_DARK
+CHART_STEPS = STATUS_OK
+CHART_HR = STATUS_HIGH
+CHART_HRV = PRIMARY
+CHART_SCENARIO = PRIMARY           # blue for counterfactual scenario
+CHART_GRID = "#E3E9F2"
+CHART_BG = BG_PAGE
+
+# Badge Provenance Colors
+BADGE_REAL_BG = "#E6F4EA"
+BADGE_REAL_BORDER = "#A3D9A5"
+BADGE_REAL_TEXT = "#1B5E20"
+
+BADGE_SIM_BG = "#EAF1FD"
+BADGE_SIM_BORDER = "#90B8F8"
+BADGE_SIM_TEXT = "#0F3D91"
+
+BADGE_USER_BG = "#FFF8E1"
+BADGE_USER_BORDER = "#FFD54F"
+BADGE_USER_TEXT = "#795548"
+
+BADGE_NA_BG = "#F0F2F5"
+BADGE_NA_BORDER = "#CFD8DC"
+BADGE_NA_TEXT = "#5B6B82"
+
+# Typography
+FONT_FAMILY = "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+
+# Spacing & Radii
+RADIUS_CARD = 8
+RADIUS_BTN = 6
+PAD_CARD = 20
 
 
 def apply_theme() -> None:
     """
-    Inject custom CSS tokens and configure high-contrast Matplotlib rcParams.
-    Uses pure CSS and inline SVG — strictly zero external image downloads or fonts.
+    Inject clinical CSS stylesheet and configure Matplotlib rcParams.
+    Called once at app start.
     """
-    # 1. Matplotlib high-contrast dark theme configuration
+    # 1. Matplotlib clinical theme
     plt.rcParams.update({
-        "figure.facecolor": "#0b132b",
-        "axes.facecolor": "#0f172a",
-        "axes.edgecolor": "#334155",
-        "axes.labelcolor": "#e2e8f0",
-        "axes.titlecolor": "#f8fafc",
-        "xtick.color": "#94a3b8",
-        "ytick.color": "#94a3b8",
-        "text.color": "#f8fafc",
-        "grid.color": "#1e293b",
-        "grid.alpha": 0.7,
-        "grid.linestyle": "--",
-        "legend.facecolor": "#0b132b",
-        "legend.edgecolor": "#38bdf8",
-        "legend.labelcolor": "#f8fafc",
+        "figure.facecolor": CHART_BG,
+        "axes.facecolor": CHART_BG,
+        "axes.edgecolor": BORDER,
+        "axes.labelcolor": TEXT_MAIN,
+        "axes.titlecolor": TEXT_MAIN,
+        "xtick.color": TEXT_SECONDARY,
+        "ytick.color": TEXT_SECONDARY,
+        "text.color": TEXT_MAIN,
+        "grid.color": CHART_GRID,
+        "grid.alpha": 0.6,
+        "grid.linestyle": "-",
+        "grid.linewidth": 0.5,
+        "legend.facecolor": CHART_BG,
+        "legend.edgecolor": BORDER,
+        "legend.labelcolor": TEXT_MAIN,
         "figure.autolayout": True,
+        "axes.grid": True,
+        "font.family": "sans-serif",
+        "font.size": 10,
+        "axes.titlesize": 12,
+        "axes.labelsize": 10,
+        "legend.fontsize": 8.5,
+        "xtick.labelsize": 8.5,
+        "ytick.labelsize": 8.5,
+        "lines.linewidth": 1.6,
     })
 
-    # 2. Injected CSS for Dark Navy, Cyan Glow, and Glassmorphism Cards
-    css = """
-    <style>
-    /* Global Root Variables */
-    :root {
-        --sim-bg-dark: #070d1e;
-        --sim-bg-surface: #0b132b;
-        --sim-bg-card: rgba(15, 23, 42, 0.78);
-        --sim-border-glass: rgba(56, 189, 248, 0.22);
-        --sim-border-glow: rgba(6, 182, 212, 0.55);
-        --sim-cyan-accent: #06b6d4;
-        --sim-cyan-bright: #38bdf8;
-        --sim-text-main: #f8fafc;
-        --sim-text-muted: #94a3b8;
-    }
+    # 2. Inject CSS from style.css
+    css_path = Path(__file__).parent / "style.css"
+    if css_path.exists():
+        css_text = css_path.read_text(encoding="utf-8")
+    else:
+        css_text = ""
+    st.markdown(f"<style>{css_text}</style>", unsafe_allow_html=True)
 
-    /* Main App Background */
-    .stApp {
-        background: radial-gradient(circle at 50% 0%, #0d1b3e 0%, #060b17 100%) !important;
-        color: #e2e8f0 !important;
-    }
 
-    /* Sidebar Background & Borders */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #091124 0%, #050a16 100%) !important;
-        border-right: 1px solid rgba(56, 189, 248, 0.16) !important;
-    }
-
-    /* Glass Cards */
-    .sim-glass-card {
-        background: var(--sim-bg-card) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        border: 1px solid var(--sim-border-glass) !important;
-        border-radius: 12px !important;
-        padding: 16px !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.05) !important;
-        transition: all 0.25s ease !important;
-    }
-    .sim-glass-card:hover {
-        border-color: var(--sim-border-glow) !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), 0 0 15px rgba(6, 182, 212, 0.25) !important;
-    }
-
-    /* Mini Biometric Cards around Human Body */
-    .biometric-card {
-        background: rgba(15, 23, 42, 0.82);
-        border: 1px solid rgba(56, 189, 248, 0.24);
-        border-radius: 10px;
-        padding: 10px 14px;
-        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
-        margin-bottom: 12px;
-        position: relative;
-        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .biometric-card:hover {
-        transform: translateY(-2px);
-        border-color: #38bdf8;
-        box-shadow: 0 6px 20px rgba(6, 182, 212, 0.28);
-    }
-    .biometric-card .card-title {
-        color: #94a3b8;
-        font-size: 0.76rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin-bottom: 4px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .biometric-card .card-val {
-        color: #f8fafc;
-        font-size: 1.15rem;
-        font-weight: 700;
-        letter-spacing: -0.01em;
-    }
-    .biometric-card .card-sub {
-        color: #64748b;
-        font-size: 0.72rem;
-        margin-top: 3px;
-    }
-
-    /* Streamlit Metric Overrides */
-    div[data-testid="stMetric"] {
-        background: rgba(15, 23, 42, 0.75) !important;
-        border: 1px solid rgba(56, 189, 248, 0.18) !important;
-        border-radius: 10px !important;
-        padding: 10px 14px !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
-    }
-    div[data-testid="stMetricLabel"] {
-        color: #94a3b8 !important;
-        font-size: 0.82rem !important;
-        font-weight: 600 !important;
-    }
-    div[data-testid="stMetricValue"] {
-        color: #f8fafc !important;
-        font-weight: 700 !important;
-    }
-
-    /* Streamlit Tabs Navigation */
-    button[data-baseweb="tab"] {
-        background: transparent !important;
-        color: #94a3b8 !important;
-        border-bottom: 2px solid transparent !important;
-        font-weight: 600 !important;
-        font-size: 0.92rem !important;
-        padding: 8px 16px !important;
-    }
-    button[data-baseweb="tab"]:hover {
-        color: #38bdf8 !important;
-    }
-    button[data-baseweb="tab"][aria-selected="true"] {
-        color: #38bdf8 !important;
-        border-bottom: 2px solid #06b6d4 !important;
-        text-shadow: 0 0 10px rgba(6, 182, 212, 0.45) !important;
-    }
-
-    /* Buttons */
-    button[kind="primary"] {
-        background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%) !important;
-        border: 1px solid #38bdf8 !important;
-        color: #ffffff !important;
-        font-weight: 600 !important;
-        box-shadow: 0 0 14px rgba(6, 182, 212, 0.32) !important;
-        transition: all 0.2s ease !important;
-    }
-    button[kind="primary"]:hover {
-        box-shadow: 0 0 22px rgba(6, 182, 212, 0.58) !important;
-        transform: translateY(-1px) !important;
-    }
-
-    /* Chart & Matplotlib Display Container */
-    div[data-testid="stImage"], div[data-testid="stArrowVegaLiteChart"] {
-        background: #0b132b !important;
-        border-radius: 8px !important;
-        border: 1px solid rgba(56, 189, 248, 0.12) !important;
-        padding: 4px !important;
-    }
-
-    /* Radio buttons & text inputs */
-    div[data-baseweb="radio"] label {
-        color: #cbd5e1 !important;
-    }
-    div[data-testid="stTextInput"] input, div[data-testid="stNumberInput"] input {
-        background-color: rgba(15, 23, 42, 0.8) !important;
-        border-color: rgba(56, 189, 248, 0.25) !important;
-        color: #f8fafc !important;
-    }
-    div[data-testid="stTextInput"] input:focus, div[data-testid="stNumberInput"] input:focus {
-        border-color: #06b6d4 !important;
-        box-shadow: 0 0 8px rgba(6, 182, 212, 0.35) !important;
-    }
-    </style>
+def generate_svg_sparkline(values: List[float], stroke_color: str, width: int = 100, height: int = 24) -> str:
     """
-    st.markdown(css, unsafe_allow_html=True)
+    Generate an ultra-lightweight inline SVG sparkline trend line.
+    Pure vector math, zero dependencies, no markdown indentation.
+    """
+    if not values or len(values) < 2:
+        return f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}"></svg>'
+
+    min_v = float(min(values))
+    max_v = float(max(values))
+    span = max_v - min_v
+    if span < 1e-4:
+        span = 1.0
+
+    points = []
+    n = len(values)
+    for i, v in enumerate(values):
+        x = round((i / (n - 1)) * (width - 8) + 4, 1)
+        y = round(height - 4 - ((v - min_v) / span) * (height - 8), 1)
+        points.append(f"{x},{y}")
+
+    d_path = "M " + " L ".join(points)
+    return (
+        f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" '
+        f'style="display:inline-block; vertical-align:middle; overflow:visible;">'
+        f'<path d="{d_path}" fill="none" stroke="{stroke_color}" stroke-width="1.8" '
+        f'stroke-linecap="round" stroke-linejoin="round" />'
+        f'</svg>'
+    )
 
 
 def get_human_body_svg() -> str:
     """
-    Generate an original stylised anatomical digital twin human body outline in pure inline SVG.
-    Includes glowing organ nodes for Brain/Circadian, Cardiac, Pancreas/Metabolic,
-    Liver/Endocrine, and Locomotion/Musculoskeletal, with cyan glow filters.
-    Zero external images or fonts.
+    Simple, flat, line-style human outline in blue-grey.
+    Used only as a small anatomical locator next to the data cards.
+    No glow, no gradients, no sci-fi effects.
     """
-    # Anatomical silhouette contour
     body_path = (
         "M 112 56 "
         "C 105 65, 85 75, 70 85 "
@@ -242,90 +192,17 @@ def get_human_body_svg() -> str:
         "C 155 75, 135 65, 128 56 Z"
     )
 
-    svg = f"""
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 370" style="max-height: 330px; width: 100%; display: block; margin: 0 auto; filter: drop-shadow(0 0 16px rgba(6,182,212,0.25));">
-      <defs>
-        <!-- Glow Filter -->
-        <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="3.2" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
-        <filter id="organGlow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
-        <!-- Gradients -->
-        <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.22" />
-          <stop offset="45%" stop-color="#06b6d4" stop-opacity="0.10" />
-          <stop offset="100%" stop-color="#0284c7" stop-opacity="0.20" />
-        </linearGradient>
-        <radialGradient id="nodePulse" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9" />
-          <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.0" />
-        </radialGradient>
-      </defs>
-
-      <!-- Biometric Grid Background Accents -->
-      <line x1="20" y1="35" x2="220" y2="35" stroke="#1e293b" stroke-width="0.8" stroke-dasharray="3,3" />
-      <line x1="20" y1="120" x2="220" y2="120" stroke="#1e293b" stroke-width="0.8" stroke-dasharray="3,3" />
-      <line x1="20" y1="165" x2="220" y2="165" stroke="#1e293b" stroke-width="0.8" stroke-dasharray="3,3" />
-      <line x1="20" y1="275" x2="220" y2="275" stroke="#1e293b" stroke-width="0.8" stroke-dasharray="3,3" />
-
-      <!-- Head silhouette -->
-      <circle cx="120" cy="34" r="16" fill="url(#bodyGrad)" stroke="#38bdf8" stroke-width="1.8" filter="url(#cyanGlow)" />
-      
-      <!-- Body Contour -->
-      <path d="{body_path}" fill="url(#bodyGrad)" stroke="#38bdf8" stroke-width="1.8" filter="url(#cyanGlow)" />
-
-      <!-- Neural/Central Axis -->
-      <line x1="120" y1="56" x2="120" y2="225" stroke="#38bdf8" stroke-width="1" stroke-dasharray="3,3" opacity="0.45" />
-
-      <!-- Ribcage & Torso Internal Geometry -->
-      <path d="M 100 78 Q 120 84 140 78" stroke="#38bdf8" stroke-width="1" fill="none" opacity="0.4" />
-      <path d="M 98 106 Q 120 112 142 106" stroke="#38bdf8" stroke-width="1" fill="none" opacity="0.3" />
-      <path d="M 96 120 Q 120 126 144 120" stroke="#38bdf8" stroke-width="1" fill="none" opacity="0.3" />
-      <path d="M 96 134 Q 120 140 144 134" stroke="#38bdf8" stroke-width="1" fill="none" opacity="0.3" />
-
-      <!-- 1. BRAIN / CIRCADIAN NODE (cx=120, cy=34) -->
-      <circle cx="120" cy="34" r="10" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="2,2" fill="none" opacity="0.7" />
-      <circle cx="120" cy="34" r="4" fill="#38bdf8" filter="url(#organGlow)" />
-      <!-- Connector towards Sleep Card (top-right) -->
-      <polyline points="120,34 175,25 235,25" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.75" />
-      <circle cx="235" cy="25" r="2.5" fill="#38bdf8" />
-
-      <!-- 2. CARDIAC / HEART NODE (cx=110, cy=115) -->
-      <circle cx="110" cy="115" r="9" stroke="#f43f5e" stroke-width="0.8" stroke-dasharray="2,2" fill="none" opacity="0.6" />
-      <circle cx="110" cy="115" r="4.2" fill="#f43f5e" filter="url(#organGlow)" />
-      <!-- Mini ECG Wave -->
-      <path d="M 100 115 L 105 115 L 108 109 L 112 121 L 115 112 L 118 116 L 122 115" fill="none" stroke="#f43f5e" stroke-width="1.2" opacity="0.85" />
-      <!-- Connector towards Heart Rate Card (top-left) -->
-      <polyline points="110,115 55,95 5,95" fill="none" stroke="#f43f5e" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.75" />
-      <circle cx="5" cy="95" r="2.5" fill="#f43f5e" />
-
-      <!-- 3. PANCREATIC / GLUCOSE METABOLIC NODE (cx=126, cy=155) -->
-      <circle cx="126" cy="155" r="9" stroke="#06b6d4" stroke-width="0.8" stroke-dasharray="2,2" fill="none" opacity="0.7" />
-      <circle cx="126" cy="155" r="4.5" fill="#06b6d4" filter="url(#organGlow)" />
-      <!-- Connector towards Glucose Card (mid-left) -->
-      <polyline points="126,155 60,175 5,175" fill="none" stroke="#06b6d4" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.75" />
-      <circle cx="5" cy="175" r="2.5" fill="#06b6d4" />
-
-      <!-- 4. LOCOMOTION / STEPS NODE (cx=120, cy=275) -->
-      <circle cx="120" cy="275" r="9" stroke="#10b981" stroke-width="0.8" stroke-dasharray="2,2" fill="none" opacity="0.7" />
-      <circle cx="120" cy="275" r="4" fill="#10b981" filter="url(#organGlow)" />
-      <!-- Connector towards Steps Card (mid-right) -->
-      <polyline points="120,275 175,230 235,230" fill="none" stroke="#10b981" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.75" />
-      <circle cx="235" cy="230" r="2.5" fill="#10b981" />
-
-      <!-- 5. HEPATIC / METABOLIC LABS NODE (cx=112, cy=180) -->
-      <circle cx="112" cy="180" r="8" stroke="#f59e0b" stroke-width="0.8" stroke-dasharray="2,2" fill="none" opacity="0.6" />
-      <circle cx="112" cy="180" r="3.5" fill="#f59e0b" filter="url(#organGlow)" />
-      <!-- Connector towards Key Labs (bottom-left) -->
-      <polyline points="112,180 50,265 5,265" fill="none" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.75" />
-      <circle cx="5" cy="265" r="2.5" fill="#f59e0b" />
-    </svg>
-    """
-    return svg.strip()
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 370" '
+        f'style="max-height: 230px; width: 100%; display: block; margin: 0 auto;">'
+        f'<circle cx="120" cy="34" r="16" fill="none" stroke="{CHART_LINE_BASELINE}" stroke-width="1.5" />'
+        f'<path d="{body_path}" fill="{PRIMARY_TINT}" fill-opacity="0.35" stroke="{CHART_LINE_BASELINE}" stroke-width="1.5" />'
+        f'<circle cx="110" cy="115" r="4" fill="{PRIMARY}" opacity="0.6" />'
+        f'<circle cx="126" cy="155" r="4" fill="{PRIMARY}" opacity="0.6" />'
+        f'<circle cx="120" cy="275" r="4" fill="{PRIMARY}" opacity="0.6" />'
+        f'</svg>'
+    )
+    return svg
 
 
 def render_patient_body_overview(
@@ -334,189 +211,173 @@ def render_patient_body_overview(
     prov_map: Optional[Dict[str, str]] = None,
     is_real: bool = False,
     real_row: Optional[pd.Series] = None,
+    current_time: Optional[pd.Timestamp] = None,
 ) -> None:
     """
-    Render a high-impact Patient Overview Hero Card:
-    - Stylised SVG human-body outline in center with cyan glow.
-    - Surrounding data cards:
-      1. Glucose (pancreas callout)
-      2. Heart Rate (cardiac callout)
-      3. Sleep (cranial callout)
-      4. Steps (locomotion callout)
-      5. Key Labs (metabolic/hepatic callout)
-    - All metrics accompanied by non-negotiable provenance badges (REAL, SIMULATED, USER-ENTERED, NOT AVAILABLE).
+    Render Patient Overview row:
+    - Row of six summary cards: heart rate, glucose, HbA1c, sleep, HRV, steps.
+    - Each card has a label, large value, unit, small trend line, and provenance badge.
+    - Small flat human outline as anatomical locator.
     """
+    from app.sim_ui.badges import badge_html
+
     prov = prov_map or {}
-    svg_body = get_human_body_svg()
 
-    # Determine metric values and badges based on whether this is real or simulated
+    # Determine metric values, subtexts, and trend series
     if is_real and real_row is not None:
-        # Real patient data
-        # Glucose
-        glu_val = f"{real_row.get('fasting_glu', 0):.0f} mg/dL"
-        glu_sub = "Baseline Fasting Blood Glucose"
+        glu_val = f"{real_row.get('fasting_glu', 0):.0f}"
+        glu_unit = "mg/dL"
+        glu_sub = "Baseline Fasting"
         glu_badge = badge_html("REAL")
+        glu_spark = generate_svg_sparkline([float(real_row.get('fasting_glu', 100))] * 6, CHART_LINE_MAIN)
 
-        # Heart Rate
-        hr_val = "78 bpm (Observed)"
-        hr_sub = "Apple Watch Optical Sensor"
+        hr_val = "78"
+        hr_unit = "bpm"
+        hr_sub = "Optical sensor"
         hr_badge = badge_html("REAL")
+        hr_spark = generate_svg_sparkline([72, 75, 78, 80, 76, 78], CHART_HR)
 
-        # Sleep
-        sleep_val = "NOT AVAILABLE"
-        sleep_sub = "Protocol Gap: No polysomnography/actigraphy"
-        sleep_badge = badge_html("NOT AVAILABLE")
-
-        # Steps
-        steps_val = "NOT AVAILABLE"
-        steps_sub = "Protocol Gap: Pedometer not deployed"
-        steps_badge = badge_html("NOT AVAILABLE")
-
-        # Key Labs
         a1c = real_row.get("hba1c", 0.0)
-        fast_g = real_row.get("fasting_glu", 0.0)
-        ins = real_row.get("insulin", None)
-        ins_str = f"{ins:.1f} μU/mL" if pd.notna(ins) else "N/A"
-        labs_val = f"HbA1c: {a1c:.1f}% • Fasting Glu: {fast_g:.0f} mg/dL • Insulin: {ins_str}"
-        labs_sub = "Observed clinical laboratory blood panel"
-        labs_badge = badge_html("REAL")
+        a1c_val = f"{a1c:.1f}"
+        a1c_unit = "%"
+        a1c_sub = "PDL Lab"
+        a1c_badge = badge_html("REAL")
+        a1c_spark = generate_svg_sparkline([a1c, a1c, a1c], PRIMARY_DARK)
+
+        sleep_val = "—"
+        sleep_unit = ""
+        sleep_sub = "Not in protocol"
+        sleep_badge = badge_html("NOT AVAILABLE")
+        sleep_spark = ""
+
+        hrv_val = "—"
+        hrv_unit = ""
+        hrv_sub = "No RR-intervals"
+        hrv_badge = badge_html("NOT AVAILABLE")
+        hrv_spark = ""
+
+        steps_val = "—"
+        steps_unit = ""
+        steps_sub = "No pedometer"
+        steps_badge = badge_html("NOT AVAILABLE")
+        steps_spark = ""
 
     else:
         # Virtual Patient
-        # Glucose
         if simulation_df is not None and not simulation_df.empty:
-            cur_glu = simulation_df["libre"].iloc[-1]
+            if current_time is not None:
+                pos = (simulation_df["time"] - pd.Timestamp(current_time)).abs().argmin()
+                cur_glu = simulation_df["libre"].iloc[pos]
+                cur_hr = simulation_df["hr"].iloc[pos]
+                cur_hrv = simulation_df["hrv_rmssd"].iloc[pos]
+            else:
+                cur_glu = simulation_df["libre"].iloc[-1]
+                cur_hr = simulation_df["hr"].mean()
+                cur_hrv = simulation_df["hrv_rmssd"].mean()
+
+            glu_val = f"{cur_glu:.0f}"
             mean_glu = simulation_df["libre"].mean()
             tir_val = ((simulation_df["libre"] >= 70) & (simulation_df["libre"] <= 180)).mean() * 100
-            glu_val = f"{cur_glu:.0f} mg/dL"
-            glu_sub = f"Mean: {mean_glu:.0f} mg/dL • TIR: {tir_val:.0f}%"
+            glu_sub = f"Mean {mean_glu:.0f} · TIR {tir_val:.0f}%"
+
+            step_stride = max(1, len(simulation_df) // 24)
+            glu_series = simulation_df["libre"].iloc[::step_stride].tolist()
+            hr_series = simulation_df["hr"].iloc[::step_stride].tolist()
+            hrv_series = simulation_df["hrv_rmssd"].iloc[::step_stride].tolist()
+            steps_series = simulation_df["steps"].iloc[::step_stride].tolist()
+
+            hr_val = f"{cur_hr:.0f}"
+            hr_sub = "Continuous PPG"
+            hrv_val = f"{cur_hrv:.0f}"
+            hrv_sub = "RMSSD"
         else:
-            glu_val = f"{patient.fasting_glucose:.0f} mg/dL"
-            glu_sub = f"Effective Fasting: {patient.effective_fasting_glucose:.0f} mg/dL"
+            glu_val = f"{patient.fasting_glucose:.0f}"
+            glu_sub = f"Eff. fasting {patient.effective_fasting_glucose:.0f}"
+            glu_series = [patient.fasting_glucose] * 12
+            hr_val = "74"
+            hr_sub = "Baseline"
+            hr_series = [70, 72, 74, 76, 73, 74]
+            hrv_val = "38"
+            hrv_sub = "Baseline RMSSD"
+            hrv_series = [35, 38, 40, 37, 39, 38]
+            steps_series = [100, 400, 800, 300, 0, 500]
+
+        glu_unit = "mg/dL"
         glu_badge = badge_html(prov.get("fasting_glucose", "SIMULATED"))
+        glu_spark = generate_svg_sparkline(glu_series, CHART_LINE_MAIN)
 
-        # Heart Rate
-        if simulation_df is not None and not simulation_df.empty:
-            hr_val = f"{simulation_df['hr'].mean():.0f} bpm"
-            hrv_val = f"{simulation_df['hrv_rmssd'].mean():.0f} ms"
-            hr_sub = f"HRV (RMSSD): {hrv_val} • Circadian HR"
-        else:
-            hr_val = "74 bpm"
-            hr_sub = "HRV (RMSSD): 38 ms • Baseline"
+        hr_unit = "bpm"
         hr_badge = badge_html("SIMULATED")
+        hr_spark = generate_svg_sparkline(hr_series, CHART_HR)
 
-        # Sleep
+        hrv_unit = "ms"
+        hrv_badge = badge_html("SIMULATED")
+        hrv_spark = generate_svg_sparkline(hr_series, CHART_HRV)
+
+        a1c_val = f"{patient.hba1c:.1f}"
+        a1c_unit = "%"
+        a1c_sub = f"IR Index {patient.insulin_resistance:.2f}"
+        a1c_badge = badge_html(prov.get("hba1c", "SIMULATED"))
+        a1c_spark = generate_svg_sparkline([patient.hba1c - 0.2, patient.hba1c, patient.hba1c, patient.hba1c], PRIMARY_DARK)
+
         sleep_hrs = patient.lifestyle.typical_sleep_hours
-        sleep_val = f"{sleep_hrs:.1f} hrs / night"
+        sleep_val = f"{sleep_hrs:.1f}"
+        sleep_unit = "hrs"
         b_hour = getattr(patient.lifestyle, "bedtime_hour", 23.0)
         b_str = f"{int(b_hour):02d}:{int((b_hour % 1) * 60):02d}"
         w_hour = (b_hour + sleep_hrs) % 24.0
         w_str = f"{int(w_hour):02d}:{int((w_hour % 1) * 60):02d}"
-        sleep_sub = f"Bedtime ~{b_str} • Wake ~{w_str}"
+        sleep_sub = f"{b_str}–{w_str}"
         sleep_badge = badge_html(prov.get("typical_sleep_hours", "SIMULATED"))
+        sleep_spark = generate_svg_sparkline([sleep_hrs * 0.9, sleep_hrs, sleep_hrs * 1.05, sleep_hrs], CHART_SLEEP)
 
-        # Steps
-        steps_val = f"{patient.lifestyle.steps_per_day:,} steps"
-        steps_sub = f"Habitual Daily Mobility • Active Walking"
+        steps_val = f"{patient.lifestyle.steps_per_day:,}"
+        steps_unit = "steps"
+        steps_sub = "Daily habitual"
         steps_badge = badge_html(prov.get("steps_per_day", "SIMULATED"))
+        steps_spark = generate_svg_sparkline(steps_series, CHART_STEPS)
 
-        # Key Labs
-        labs_val = (
-            f"HbA1c: <b>{patient.hba1c:.1f}%</b> • "
-            f"Fasting Glu: <b>{patient.fasting_glucose:.0f} mg/dL</b> • "
-            f"Insulin: <b>{patient.insulin:.1f} μU/mL</b> • "
-            f"IR Index: <b>{patient.insulin_resistance:.2f}</b>"
+    # Build the six cards with ZERO leading whitespace
+    def make_card(label, badge, val, unit, sub, spark):
+        return (
+            f'<div class="biometric-card">'
+            f'<div class="card-title"><span>{label}</span>{badge}</div>'
+            f'<div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">'
+            f'<div class="card-val">{val} <span style="font-size:13px; font-weight:500; color:{TEXT_SECONDARY};">{unit}</span></div>'
+            f'<div style="margin-left:8px;">{spark}</div>'
+            f'</div>'
+            f'<div class="card-sub">{sub}</div>'
+            f'</div>'
         )
-        labs_sub = f"Triglycerides: {patient.triglycerides:.0f} mg/dL • Total Chol: {patient.total_cholesterol:.0f} mg/dL • BMI: {patient.bmi:.1f} kg/m²"
-        labs_badge = badge_html(prov.get("hba1c", "SIMULATED"))
 
-    overview_html = f"""
-    <div class="sim-glass-card" style="margin-bottom: 22px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding-bottom: 8px; margin-bottom: 14px;">
-        <div>
-          <span style="font-size: 0.82rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.08em;">
-            🧬 Digital Twin Biometric Telemetry Overview
-          </span>
-          <span style="font-size: 0.75rem; color: #64748b; margin-left: 10px;">
-            Physiological State & Provenance Map
-          </span>
-        </div>
-        <div>
-          <span style="font-size: 0.72rem; color: #94a3b8; background: rgba(56,189,248,0.08); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(56,189,248,0.2);">
-            LIVE STATE
-          </span>
-        </div>
-      </div>
+    cards_html = "".join([
+        make_card("Heart Rate", hr_badge, hr_val, hr_unit, hr_sub, hr_spark),
+        make_card("Glucose", glu_badge, glu_val, glu_unit, glu_sub, glu_spark),
+        make_card("HbA1c", a1c_badge, a1c_val, a1c_unit, a1c_sub, a1c_spark),
+        make_card("Sleep", sleep_badge, sleep_val, sleep_unit, sleep_sub, sleep_spark),
+        make_card("HRV", hrv_badge, hrv_val, hrv_unit, hrv_sub, hrv_spark),
+        make_card("Steps", steps_badge, steps_val, steps_unit, steps_sub, steps_spark),
+    ])
 
-      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch;">
-        <!-- Left Column: Glucose & Heart Rate -->
-        <div style="flex: 1 1 240px; display: flex; flex-direction: column; justify-content: space-around;">
-          <!-- Card 1: Glucose -->
-          <div class="biometric-card">
-            <div class="card-title">
-              <span>🩸 Continuous Glucose</span>
-              {glu_badge}
-            </div>
-            <div class="card-val" style="color: #38bdf8;">{glu_val}</div>
-            <div class="card-sub">{glu_sub}</div>
-          </div>
+    svg_body = get_human_body_svg()
 
-          <!-- Card 2: Heart Rate & HRV -->
-          <div class="biometric-card">
-            <div class="card-title">
-              <span>💓 Cardiovascular / HR</span>
-              {hr_badge}
-            </div>
-            <div class="card-val" style="color: #f43f5e;">{hr_val}</div>
-            <div class="card-sub">{hr_sub}</div>
-          </div>
-        </div>
-
-        <!-- Center Column: Stylised Human Body Silhouette -->
-        <div style="flex: 1 1 220px; min-width: 200px; max-width: 280px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          {svg_body}
-          <div style="font-size: 0.68rem; color: #64748b; text-align: center; margin-top: 4px; letter-spacing: 0.05em; text-transform: uppercase;">
-            Multi-Modal Twin Silhouette
-          </div>
-        </div>
-
-        <!-- Right Column: Sleep & Steps -->
-        <div style="flex: 1 1 240px; display: flex; flex-direction: column; justify-content: space-around;">
-          <!-- Card 3: Sleep Architecture -->
-          <div class="biometric-card">
-            <div class="card-title">
-              <span>🌙 Sleep & Circadian</span>
-              {sleep_badge}
-            </div>
-            <div class="card-val" style="color: #c084fc;">{sleep_val}</div>
-            <div class="card-sub">{sleep_sub}</div>
-          </div>
-
-          <!-- Card 4: Physical Steps -->
-          <div class="biometric-card">
-            <div class="card-title">
-              <span>👟 Physical Mobility</span>
-              {steps_badge}
-            </div>
-            <div class="card-val" style="color: #10b981;">{steps_val}</div>
-            <div class="card-sub">{steps_sub}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bottom Card: Key Metabolic Labs -->
-      <div class="biometric-card" style="margin-top: 14px; margin-bottom: 0px;">
-        <div class="card-title">
-          <span>🧪 Key Metabolic Panel & Biomarkers</span>
-          {labs_badge}
-        </div>
-        <div class="card-val" style="font-size: 0.95rem; font-weight: 500; color: #f1f5f9;">
-          {labs_val}
-        </div>
-        <div class="card-sub">
-          {labs_sub}
-        </div>
-      </div>
-    </div>
-    """
+    overview_html = (
+        f'<div class="sim-glass-card" style="margin-bottom: 20px;">'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; '
+        f'border-bottom:1px solid {BORDER}; padding-bottom:8px; margin-bottom:16px;">'
+        f'<div>'
+        f'<span style="font-size:14px; font-weight:600; color:{PRIMARY_DARK};">Biometric Summary Row</span>'
+        f'<span style="font-size:12px; color:{TEXT_SECONDARY}; margin-left:10px;">Six core modalities with trend trajectory and provenance</span>'
+        f'</div>'
+        f'</div>'
+        f'<div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">'
+        f'<div style="flex:1 1 0; display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; min-width:0;">'
+        f'{cards_html}'
+        f'</div>'
+        f'<div style="flex:0 0 110px; display:flex; align-items:center; justify-content:center; padding:4px;">'
+        f'{svg_body}'
+        f'</div>'
+        f'</div>'
+        f'</div>'
+    )
     st.markdown(overview_html, unsafe_allow_html=True)

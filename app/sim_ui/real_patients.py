@@ -22,7 +22,11 @@ import streamlit as st
 
 from app.sim_ui.common import load_real_bio_data
 from app.sim_ui.badges import badge_html, label_with_badge
-from app.sim_ui.theme import render_patient_body_overview
+from app.sim_ui.theme import (
+    render_patient_body_overview,
+    CHART_LINE_MAIN, CHART_THRESHOLD, CHART_HYPO, CHART_MEAL,
+    TEXT_SECONDARY,
+)
 
 
 @st.cache_data
@@ -41,7 +45,7 @@ def load_real_cgm_participant(subject_num: int) -> pd.DataFrame:
 
 def render_real_patients() -> None:
     """Main entry point for Section 3: Real Reference Patients."""
-    st.markdown("## 📋 Real Reference Patients (CGMacros Cohort)")
+    st.markdown("## Real Reference Patients (CGMacros Cohort)")
     st.caption(
         "Read-only clinical records for the 45 human participants from the CGMacros "
         "continuous glucose monitoring study. Under **Honesty Rule 2**, variables "
@@ -91,18 +95,18 @@ def render_real_patients() -> None:
     # Participant Header
     st.markdown(
         f"### {row['subject_str']} {badge_html('REAL')} "
-        f"<span style='font-size:0.9rem;color:#9ca3af;'>({row['group'].upper()})</span>",
+        f"<span style='font-size:14px;color:{TEXT_SECONDARY};'>({row['group'].upper()})</span>",
         unsafe_allow_html=True,
     )
 
-    # Stylised Human Body Biometric Overview Card (Part 7)
+    # Patient Biometric Overview Card
     render_patient_body_overview(None, is_real=True, real_row=row)
 
     # Tabs
     tab_bio, tab_missing, tab_cgm = st.tabs([
-        "🔬 Real Profile & Labs",
-        "🚫 Lacking Fields (Not Available)",
-        "📈 Real CGM Telemetry",
+        "Real Profile and Labs",
+        "Lacking Fields (Not Available)",
+        "Real CGM Telemetry",
     ])
 
     # ── TAB 1: Real Profile & Labs ───────────────────────────────────────────
@@ -116,7 +120,7 @@ def render_real_patients() -> None:
         d4.metric("Ethnicity", str(eth) if pd.notna(eth) else "Unrecorded")
 
         st.divider()
-        st.markdown(f"#### Observed Glycemic & Lipid Laboratory Panel {badge_html('REAL')}")
+        st.markdown(f"#### Observed Glycemic and Lipid Laboratory Panel {badge_html('REAL')}")
         g1, g2, g3 = st.columns(3)
         g1.metric("HbA1c (PDL Lab)", f"{row['hba1c']:.1f}%")
         g2.metric("Fasting Glucose", f"{row['fasting_glu']:.0f} mg/dL")
@@ -173,15 +177,15 @@ def render_real_patients() -> None:
             m3.metric("Spike Share (>180)", f"{(cgm_clean['libre'] > 180).mean():.1%}")
 
             fig, ax = plt.subplots(figsize=(11, 3.8))
-            ax.plot(cgm_clean["time"], cgm_clean["libre"], color="#38bdf8", lw=1.2, label="Real Libre Glucose")
-            ax.axhline(180, color="#ef4444", ls="--", lw=1, label="Spike Threshold (180)")
-            ax.axhline(70, color="#f59e0b", ls="--", lw=1, label="Hypo Threshold (70)")
+            ax.plot(cgm_clean["time"], cgm_clean["libre"], color=CHART_LINE_MAIN, lw=1.2, label="Real Libre Glucose")
+            ax.axhline(180, color=CHART_THRESHOLD, ls="--", lw=1, label="Spike Threshold (180)")
+            ax.axhline(70, color=CHART_HYPO, ls="--", lw=1, label="Hypo Threshold (70)")
             
             real_meals = cgm_df[cgm_df["carbs"] > 0]
             if not real_meals.empty:
                 for mt in real_meals["time"]:
-                    ax.axvline(mt, color="#f97316", alpha=0.4, ls=":", lw=1)
-                ax.plot([], [], color="#f97316", label="Real Meal Logged")
+                    ax.axvline(mt, color=CHART_MEAL, alpha=0.35, ls=":", lw=1)
+                ax.plot([], [], color=CHART_MEAL, label="Real Meal Logged")
 
             ax.set_ylabel("Glucose (mg/dL)", fontsize=9)
             ax.legend(loc="upper right", fontsize=8)

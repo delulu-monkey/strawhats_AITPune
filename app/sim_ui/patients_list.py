@@ -28,11 +28,16 @@ from src.sim.store import (
     delete_patient,
 )
 from app.sim_ui.badges import badge_html, label_with_badge
+from app.sim_ui.theme import (
+    PRIMARY, PRIMARY_DARK, PRIMARY_TINT, BORDER,
+    TEXT_MAIN, TEXT_SECONDARY, STATUS_HIGH,
+    BADGE_REAL_BG, BADGE_REAL_BORDER, BADGE_REAL_TEXT,
+)
 
 
 def render_patients_list() -> None:
-    """Main entry point for Patients tab."""
-    st.markdown("## 👥 Virtual Patients Directory")
+    """Main entry point for Patients tab / directory."""
+    st.markdown("## Virtual Patients Directory")
     st.caption(
         "Manage synthetic personas. Presets are read-only clinical benchmarks; "
         "custom patients can be created, edited, and deleted."
@@ -55,17 +60,17 @@ def render_patients_list() -> None:
 
     # Search and Filter
     search_col, filter_col = st.columns([3, 1])
-    search_query = search_col.text_input("🔍 Search patients by name, diagnosis, or description", "")
+    search_query = search_col.text_input("Search patients by name, diagnosis, or description", "")
     filter_type = filter_col.selectbox("Filter Type", ["All", "Presets Only", "Custom Only"])
 
     # Add Patient Expander
-    with st.expander("➕ Add New Virtual Patient", expanded=st.session_state.get("show_add_form", False)):
+    with st.expander("Add New Virtual Patient", expanded=st.session_state.get("show_add_form", False)):
         render_add_patient_form()
 
     # Edit Patient Expander (if triggered)
     edit_id = st.session_state.get("editing_patient_id")
     if edit_id:
-        with st.expander(f"✏️ Edit Custom Patient: {edit_id}", expanded=True):
+        with st.expander(f"Edit Custom Patient: {edit_id}", expanded=True):
             render_edit_patient_form(edit_id)
 
     # Filter patient list
@@ -92,13 +97,15 @@ def render_patients_list() -> None:
     for pt in filtered:
         with st.container():
             c1, c2, c3, c4 = st.columns([3, 2, 2, 3])
-            
+
             with c1:
                 is_preset = pt["type"] == "preset"
                 type_badge = (
-                    "<span style='background:#1e3a8a;color:#93c5fd;font-size:0.7rem;padding:1px 6px;border-radius:4px;'>PRESET</span>"
+                    f"<span style='background:{PRIMARY_TINT};color:{PRIMARY_DARK};"
+                    f"font-size:11px;padding:1px 6px;border-radius:4px;border:1px solid {BORDER};'>PRESET</span>"
                     if is_preset
-                    else "<span style='background:#065f46;color:#6ee7b7;font-size:0.7rem;padding:1px 6px;border-radius:4px;'>CUSTOM</span>"
+                    else f"<span style='background:{BADGE_REAL_BG};color:{BADGE_REAL_TEXT};"
+                    f"font-size:11px;padding:1px 6px;border-radius:4px;border:1px solid {BADGE_REAL_BORDER};'>CUSTOM</span>"
                 )
                 st.markdown(
                     f"**{pt['name']}** {badge_html('SIMULATED')} {type_badge}",
@@ -111,7 +118,7 @@ def render_patients_list() -> None:
                 age_str = f"Age {pt['age']}" if pt.get("age") else "Age --"
                 sex_str = pt.get("sex", "--")
                 bmi_str = f"BMI {pt['bmi']:.1f}" if pt.get("bmi") else "BMI --"
-                st.write(f"{age_str} • {sex_str} • {bmi_str}")
+                st.write(f"{age_str} · {sex_str} · {bmi_str}")
 
             with c3:
                 a1c_str = f"HbA1c {pt['hba1c']:.1f}%" if pt.get("hba1c") else "HbA1c --"
@@ -121,17 +128,17 @@ def render_patients_list() -> None:
 
             with c4:
                 btn_cols = st.columns([2, 1, 1])
-                if btn_cols[0].button("🔬 Inspect", key=f"inspect_{pt['id']}"):
+                if btn_cols[0].button("Inspect", key=f"inspect_{pt['id']}"):
                     st.session_state["selected_patient_id"] = pt["id"]
-                    st.session_state["active_nav"] = "Patient View"
+                    st.session_state["active_nav"] = "Patient view"
                     st.rerun()
 
                 if not is_preset:
-                    if btn_cols[1].button("✏️", key=f"edit_{pt['id']}", help="Edit patient"):
+                    if btn_cols[1].button("Edit", key=f"edit_{pt['id']}", help="Edit patient"):
                         st.session_state["editing_patient_id"] = pt["id"]
                         st.rerun()
 
-                    if btn_cols[2].button("🗑️", key=f"del_{pt['id']}", help="Delete patient"):
+                    if btn_cols[2].button("Delete", key=f"del_{pt['id']}", help="Delete patient"):
                         try:
                             delete_patient(pt["id"])
                             st.success(f"Deleted {pt['name']}")
@@ -142,19 +149,25 @@ def render_patients_list() -> None:
                             st.error(f"Error: {e}")
                 else:
                     btn_cols[1].markdown(
-                        "<span style='color:#6b7280;font-size:0.8rem;'>Protected</span>",
+                        f"<span style='color:{TEXT_SECONDARY};font-size:12px;'>Protected</span>",
                         unsafe_allow_html=True,
                     )
 
             st.divider()
 
 
+def render_add_patient_page() -> None:
+    """Standalone page for 'Add patient' navigation."""
+    st.markdown("## Add New Virtual Patient")
+    st.caption("Create a synthetic patient twin with complete clinical, physiological, and behavioral parameters.")
+    render_add_patient_form()
+
+
 def render_add_patient_form() -> None:
     """Render comprehensive form with all VirtualPatient parameters."""
-    st.markdown("#### Patient Demographics & Baseline Labs")
-    
     with st.form("add_patient_form", clear_on_submit=False):
-        # 1. Demographics
+        # Section 1: Demographics
+        st.markdown(f"#### 1. Demographics & Identifiers {badge_html('USER-ENTERED')}", unsafe_allow_html=True)
         c1, c2, c3, c4 = st.columns(4)
         name = c1.text_input("Full Name *", "Custom Patient 1")
         age = c2.number_input("Age (years) *", min_value=1, max_value=120, value=48)
@@ -167,9 +180,9 @@ def render_add_patient_form() -> None:
         calc_bmi = round(weight_kg / ((height_cm / 100.0) ** 2), 1)
         c_bmi.metric("Calculated BMI", f"{calc_bmi} kg/m²")
 
-        description = st.text_input("One-line Clinical Summary", "Custom profile created in simulation workspace.")
+        description = st.text_input("Clinical Profile Summary", "Custom profile created in simulation workspace.")
 
-        st.markdown("#### Laboratory Glycemic & Lipid Panel")
+        st.markdown(f"#### 2. Glycemic and Lipid Laboratory Panel {badge_html('USER-ENTERED')}", unsafe_allow_html=True)
         l1, l2, l3, l4 = st.columns(4)
         hba1c = l1.number_input("HbA1c (%) *", min_value=3.0, max_value=20.0, value=6.2, step=0.1)
         fasting_glu = l2.number_input("Fasting Glucose (mg/dL) *", min_value=30.0, max_value=500.0, value=112.0, step=1.0)
@@ -181,12 +194,12 @@ def render_add_patient_form() -> None:
         hdl = l6.number_input("HDL (mg/dL)", min_value=10.0, max_value=150.0, value=50.0, step=1.0)
         ldl = l7.number_input("LDL (mg/dL)", min_value=10.0, max_value=400.0, value=115.0, step=1.0)
 
-        st.markdown("#### Clinical Diagnoses & Medications")
+        st.markdown(f"#### 3. Clinical Diagnoses & Pharmacotherapy {badge_html('USER-ENTERED')}", unsafe_allow_html=True)
         cd1, cd2 = st.columns(2)
         diag_str = cd1.text_input("Diagnoses (comma-separated)", "Prediabetes, Mild Hypertension")
         med_str = cd2.text_input("Medications (comma-separated)", "Metformin 500mg")
 
-        st.markdown("#### Behavioral & Lifestyle Schedule")
+        st.markdown(f"#### 4. Behavioral & Lifestyle Schedule {badge_html('USER-ENTERED')}", unsafe_allow_html=True)
         ls1, ls2, ls3 = st.columns(3)
         sleep_hours = ls1.number_input("Typical Sleep Duration (hours)", min_value=3.0, max_value=12.0, value=7.2, step=0.1)
         sleep_var = ls2.number_input("Sleep Variability SD (hours)", min_value=0.0, max_value=4.0, value=0.5, step=0.1)
@@ -197,7 +210,7 @@ def render_add_patient_form() -> None:
         resting_hr = ls5.number_input("Resting Heart Rate (bpm)", min_value=30.0, max_value=120.0, value=68.0, step=1.0)
         snack_prob = ls6.number_input("Unlogged Snack Prob (per 5 min)", min_value=0.0, max_value=0.1, value=UNLOGGED_SNACK_PROB_PER_EPOCH, step=0.005, format="%.3f")
 
-        st.markdown("#### Genetic Markers & Polygenic Risk")
+        st.markdown(f"#### 5. Genetic Markers & Polygenic Risk {badge_html('USER-ENTERED')}", unsafe_allow_html=True)
         g1, g2 = st.columns([1, 2])
         genetic_risk = g1.slider("Composite Genetic Risk Score (0–100)", min_value=0.0, max_value=100.0, value=50.0, step=1.0)
 
@@ -207,7 +220,17 @@ def render_add_patient_form() -> None:
         for idx, v in enumerate(T2D_VARIANTS):
             variant_alleles[v] = var_cols[idx].selectbox(f"{v}", [0, 1, 2], index=0, key=f"add_var_{v}")
 
-        submitted = st.form_submit_button("💾 Save Virtual Patient", use_container_width=True)
+        st.divider()
+
+        # Action Buttons: primary blue Save button and secondary Cancel button
+        btn_c1, btn_c2 = st.columns([2, 1])
+        submitted = btn_c1.form_submit_button("Save Virtual Patient", type="primary", use_container_width=True)
+        cancelled = btn_c2.form_submit_button("Cancel", use_container_width=True)
+
+        if cancelled:
+            st.session_state["show_add_form"] = False
+            st.session_state["active_nav"] = "Patient view"
+            st.rerun()
 
         if submitted:
             diagnoses = [d.strip() for d in diag_str.split(",") if d.strip()]
@@ -247,7 +270,6 @@ def render_add_patient_form() -> None:
             }
 
             try:
-                # Validate with dataclass
                 vp = VirtualPatient.from_dict(p_dict)
                 user_fields = [
                     "name", "age", "sex", "height_cm", "weight_kg", "hba1c",
@@ -260,12 +282,13 @@ def render_add_patient_form() -> None:
                     user_entered_fields=user_fields,
                     overwrite=False,
                 )
-                st.success(f"✅ Successfully saved custom patient '{vp.name}' to {saved_path.name}!")
+                st.success(f"Successfully saved custom patient '{vp.name}' to {saved_path.name}!")
                 st.session_state["selected_patient_id"] = vp.patient_id.lower()
                 st.session_state["show_add_form"] = False
+                st.session_state["active_nav"] = "Patient view"
                 st.rerun()
             except Exception as e:
-                st.error(f"❌ Validation Error: {e}")
+                st.error(f"Validation Error: {e}")
 
 
 def render_edit_patient_form(patient_id: str) -> None:
@@ -304,7 +327,7 @@ def render_edit_patient_form(patient_id: str) -> None:
         steps_per_day = s2.number_input("Steps per Day", min_value=0, max_value=50000, value=int(p.lifestyle.steps_per_day), step=500)
 
         b_sub, b_can = st.columns(2)
-        save_btn = b_sub.form_submit_button("Update Patient", use_container_width=True)
+        save_btn = b_sub.form_submit_button("Update Patient", type="primary", use_container_width=True)
         cancel_btn = b_can.form_submit_button("Cancel", use_container_width=True)
 
         if cancel_btn:

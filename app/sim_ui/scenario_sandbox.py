@@ -30,6 +30,11 @@ from src.sim.scenarios import simulate_scenario, compare_metrics
 from src.sim.featurize import featurize_patient
 from app.sim_ui.common import load_models, load_indian_meals
 from app.sim_ui.badges import badge_html
+from app.sim_ui.theme import (
+    PRIMARY, PRIMARY_DARK, CHART_LINE_MAIN, CHART_LINE_BASELINE,
+    CHART_THRESHOLD, CHART_HYPO, CHART_RANGE_FILL, CHART_MEAL, CHART_STEPS,
+    STATUS_OK, STATUS_WATCH, STATUS_HIGH,
+)
 
 THR = 180.0
 WATCH = 0.75
@@ -38,7 +43,7 @@ HIGH = 0.91
 
 def render_scenario_sandbox() -> None:
     """Main entry point for Section: Scenario Sandbox."""
-    st.markdown("## 🧪 Counterfactual Scenario Sandbox")
+    st.markdown("## Counterfactual Scenario Sandbox")
     st.caption(
         "Define hypothetical behavioral interventions and simulate the next 24 hours. "
         "Baseline and scenario run with the **exact same random seed** so only the intervention differs."
@@ -46,7 +51,7 @@ def render_scenario_sandbox() -> None:
 
     # Mandatory Plain Statement
     st.warning(
-        "⚠️ **Clinical Notice:** Scenario effects come from simulator assumptions "
+        "**Clinical Notice:** Scenario effects come from simulator assumptions "
         "(see assumptions file), not from patterns learned in real data."
     )
 
@@ -75,15 +80,16 @@ def render_scenario_sandbox() -> None:
     start_moment = dt.combine(eval_date, eval_time)
 
     st.markdown(
-        f"**Patient Baseline:** {patient.name} • Age {patient.age} • HbA1c {patient.hba1c:.1f}% • "
-        f"BMI {patient.bmi:.1f} • Usual Sleep: {patient.lifestyle.typical_sleep_hours:.1f}h • "
-        f"Habitual Steps: {patient.lifestyle.steps_per_day:,} • Seed: `{patient.seed}` {badge_html('SIMULATED')}"
+        f"**Patient Baseline:** {patient.name} · Age {patient.age} · HbA1c {patient.hba1c:.1f}% · "
+        f"BMI {patient.bmi:.1f} · Usual Sleep: {patient.lifestyle.typical_sleep_hours:.1f}h · "
+        f"Habitual Steps: {patient.lifestyle.steps_per_day:,} · Seed: `{patient.seed}` {badge_html('SIMULATED')}",
+        unsafe_allow_html=True,
     )
 
     st.divider()
 
     # Define Up to Three Changes
-    st.markdown("### 🛠️ Define Interventions (Choose up to 3)")
+    st.markdown("### Define Interventions (Choose up to 3)")
     food_catalogue = load_indian_meals()
 
     c_box1, c_box2, c_box3, c_box4 = st.columns(4)
@@ -104,7 +110,7 @@ def render_scenario_sandbox() -> None:
     # 1. Sleep modification
     if mod_sleep:
         with col_interv1:
-            st.markdown("##### 🛌 Sleep Modification")
+            st.markdown("##### Sleep Modification")
             cur_sleep = patient.lifestyle.typical_sleep_hours
             target_sleep = st.slider(
                 "Tonight's Sleep Duration (hours)",
@@ -119,7 +125,7 @@ def render_scenario_sandbox() -> None:
     # 2. Meal modification
     if mod_meal:
         with col_interv2:
-            st.markdown("##### 🍛 Added Meal / Food Challenge")
+            st.markdown("##### Added Meal / Food Challenge")
             meal_dish = st.selectbox("Select Dish", food_catalogue["dish"].tolist(), index=8)  # Boiled rice
             m_portions = st.slider("Portion Size", 0.5, 3.0, 1.5, 0.5)
             meal_offset_h = st.slider("Meal Timing (hours from start)", 0.5, 12.0, 2.0, 0.5)
@@ -135,7 +141,7 @@ def render_scenario_sandbox() -> None:
     # 3. Walk modification
     if mod_walk:
         with col_interv1:
-            st.markdown("##### 🚶 Added Walk / Exercise")
+            st.markdown("##### Added Walk / Exercise")
             walk_dur = st.slider("Walk Duration (minutes)", 15, 60, 30, 5)
             # Default timing: 30 minutes after the meal if meal added, otherwise 3h from start
             default_walk_offset = (scenario_params.get("added_meal", {}).get("time", start_moment + timedelta(hours=2)) - start_moment).total_seconds() / 3600.0 + 0.5 if mod_meal else 3.0
@@ -152,7 +158,7 @@ def render_scenario_sandbox() -> None:
     # 4. Habitual steps modification
     if mod_steps:
         with col_interv2:
-            st.markdown("##### 👟 Habitual Daily Activity")
+            st.markdown("##### Habitual Daily Activity")
             target_steps = st.slider(
                 "New Habitual Daily Steps",
                 min_value=2000,
@@ -165,12 +171,12 @@ def render_scenario_sandbox() -> None:
     st.divider()
 
     # Run Scenario Simulation
-    if st.button("🚀 Run Counterfactual Scenario", type="primary", use_container_width=True):
+    if st.button("Run Counterfactual Scenario", type="primary", use_container_width=True):
         with st.spinner("Simulating counterfactual 24-hour trajectories..."):
             baseline_df, scenario_df = simulate_scenario(patient, start_moment, scenario_params)
             metrics = compare_metrics(baseline_df, scenario_df)
 
-        st.markdown(f"### 📊 Simulation Results: Baseline vs Scenario {badge_html('SIMULATED')}")
+        st.markdown(f"### Simulation Results: Baseline vs Scenario {badge_html('SIMULATED')}")
 
         # Metrics cards
         m1, m2, m3, m4 = st.columns(4)
@@ -199,14 +205,14 @@ def render_scenario_sandbox() -> None:
 
         st.divider()
 
-        # Comparison Plot
-        st.markdown("##### 📈 Glucose Trajectory Comparison (24 Hours)")
+        # Comparison Plot — baseline in grey, scenario in blue
+        st.markdown("##### Glucose Trajectory Comparison (24 Hours)")
         fig_cmp, ax_cmp = plt.subplots(figsize=(11, 4.2))
 
         ax_cmp.plot(
             baseline_df["time"],
             baseline_df["libre"],
-            color="#94a3b8",
+            color=CHART_LINE_BASELINE,
             lw=1.8,
             ls="--",
             label="Baseline (Normal Schedule)",
@@ -214,26 +220,26 @@ def render_scenario_sandbox() -> None:
         ax_cmp.plot(
             scenario_df["time"],
             scenario_df["libre"],
-            color="#a855f7",
-            lw=2.2,
+            color=CHART_LINE_MAIN,
+            lw=2.0,
             label="Counterfactual Scenario",
         )
 
-        ax_cmp.axhline(180, color="#ef4444", ls=":", lw=1.2, label="Spike Threshold (180)")
-        ax_cmp.axhline(70, color="#f59e0b", ls=":", lw=1.0, label="Hypo Threshold (70)")
-        ax_cmp.axhspan(70, 180, color="#10b981", alpha=0.06)
+        ax_cmp.axhline(180, color=CHART_THRESHOLD, ls=":", lw=1.2, label="Spike Threshold (180)")
+        ax_cmp.axhline(70, color=CHART_HYPO, ls=":", lw=1.0, label="Hypo Threshold (70)")
+        ax_cmp.axhspan(70, 180, color=CHART_RANGE_FILL, alpha=0.04)
 
         # Plot intervention markers
         if mod_meal and "added_meal" in scenario_params:
             m_t = scenario_params["added_meal"]["time"]
-            ax_cmp.axvline(m_t, color="#f97316", ls="-.", lw=1.5)
+            ax_cmp.axvline(m_t, color=CHART_MEAL, ls="-.", lw=1.5)
             ax_cmp.scatter([m_t], [scenario_df.loc[(scenario_df["time"] - m_t).abs().argmin(), "libre"]],
-                           color="#f97316", s=40, zorder=6, label="Added Meal")
+                           color=CHART_MEAL, s=40, zorder=6, label="Added Meal")
 
         if mod_walk and "added_walk" in scenario_params:
             w_t = scenario_params["added_walk"]["time"]
             w_dur = scenario_params["added_walk"]["duration_minutes"]
-            ax_cmp.axvspan(w_t, w_t + timedelta(minutes=w_dur), color="#10b981", alpha=0.15, label="Added Walk")
+            ax_cmp.axvspan(w_t, w_t + timedelta(minutes=w_dur), color=CHART_STEPS, alpha=0.12, label="Added Walk")
 
         ax_cmp.set_ylabel("Glucose (mg/dL)", fontsize=9)
         ax_cmp.legend(loc="upper right", fontsize=8)
@@ -241,10 +247,16 @@ def render_scenario_sandbox() -> None:
         st.pyplot(fig_cmp)
         plt.close(fig_cmp)
 
+        # Disclaimer note
+        st.caption(
+            "The effects shown come from simulator assumptions and are not treatment advice. "
+            "See the Simulation Assumptions page for all parameter values and rationale."
+        )
+
         st.divider()
 
         # Risk Model Evaluation Before vs After with SHAP
-        st.markdown("##### ⚡ XGBoost Spike Warning Risk Evaluation: Before vs After")
+        st.markdown("##### XGBoost Spike Warning Risk Evaluation: Before vs After")
         risk_dict, _, explainer = load_models()
         feats_base = featurize_patient(baseline_df, patient)
         feats_scen = featurize_patient(scenario_df, patient)
@@ -282,23 +294,45 @@ def render_scenario_sandbox() -> None:
             st.markdown(f"###### Baseline Risk (at {eval_t.strftime('%H:%M')})")
             lv_b = get_level(prob_b)
             if lv_b == "HIGH":
-                st.error(f"🚨 **HIGH RISK** ({prob_b:.1%})")
+                st.error(f"**HIGH RISK** ({prob_b:.1%})")
             elif lv_b == "WATCH":
-                st.warning(f"⚠️ **WATCH** ({prob_b:.1%})")
+                st.warning(f"**WATCH** ({prob_b:.1%})")
             else:
-                st.success(f"✅ **LOW RISK** ({prob_b:.1%})")
+                st.success(f"**LOW RISK** ({prob_b:.1%})")
             st.write(f"Glucose: {row_b['glu_now']:.0f} mg/dL")
 
         with r_col_s:
             st.markdown(f"###### Scenario Risk (at {eval_t.strftime('%H:%M')})")
             lv_s = get_level(prob_s)
             if lv_s == "HIGH":
-                st.error(f"🚨 **HIGH RISK** ({prob_s:.1%})")
+                st.error(f"**HIGH RISK** ({prob_s:.1%})")
             elif lv_s == "WATCH":
-                st.warning(f"⚠️ **WATCH** ({prob_s:.1%})")
+                st.warning(f"**WATCH** ({prob_s:.1%})")
             else:
-                st.success(f"✅ **LOW RISK** ({prob_s:.1%})")
+                st.success(f"**LOW RISK** ({prob_s:.1%})")
             st.write(f"Glucose: {row_s['glu_now']:.0f} mg/dL")
+
+        # Comparison table
+        st.markdown("###### Metric Comparison")
+        comp_data = {
+            "Metric": ["Peak Glucose (mg/dL)", "Time > 180 (%)", "Mean Glucose (mg/dL)"],
+            "Baseline": [
+                f"{metrics['baseline_peak']:.1f}",
+                f"{metrics['baseline_time_above_180']:.1f}",
+                f"{metrics['baseline_mean']:.1f}",
+            ],
+            "Scenario": [
+                f"{metrics['scenario_peak']:.1f}",
+                f"{metrics['scenario_time_above_180']:.1f}",
+                f"{metrics['scenario_mean']:.1f}",
+            ],
+            "Change": [
+                f"{metrics['peak_delta']:+.1f}",
+                f"{metrics['time_above_180_delta']:+.1f}",
+                f"{metrics['mean_delta']:+.1f}",
+            ],
+        }
+        st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
 
         st.markdown("###### Top SHAP Drivers of Risk Divergence")
         sv_b = explainer.shap_values(x_b)
@@ -318,9 +352,9 @@ def render_scenario_sandbox() -> None:
 
         if not top_inc.empty:
             for feat, val in top_inc.items():
-                st.write(f"▲ **Increased risk in scenario:** `{feat}` (SHAP change: +{val:.3f})")
+                st.write(f"**Increased risk in scenario:** `{feat}` (SHAP change: +{val:.3f})")
         if not top_dec.empty:
             for feat, val in top_dec.items():
-                st.write(f"▼ **Mitigated risk in scenario:** `{feat}` (SHAP change: {val:.3f})")
+                st.write(f"**Mitigated risk in scenario:** `{feat}` (SHAP change: {val:.3f})")
         if top_inc.empty and top_dec.empty:
             st.info("No significant SHAP divergence at this moment.")

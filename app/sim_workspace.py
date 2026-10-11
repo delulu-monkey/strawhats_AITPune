@@ -3,99 +3,245 @@ Virtual Patient Simulation Workspace.
 =====================================
 
 Streamlit Entry Point:
-- Sidebar navigation: Patients Directory, Patient View & Risk, Real Reference Patients.
-- Mandatory research prototype banner.
+- Left sidebar: navigation (Patient view, Scenario sandbox, Add patient),
+  then patient list (preset and custom patients with active selection highlighted).
+- Top bar: product name "Digital Twin Workspace", research prototype badge, patient search.
 - All fields & charts carry explicit provenance badges (REAL, SIMULATED, USER-ENTERED, NOT AVAILABLE).
 """
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Ensure project root is in sys.path
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 import streamlit as st
 
-from app.sim_ui.badges import render_banner
-from app.sim_ui.theme import apply_theme
-from app.sim_ui.patients_list import render_patients_list
+from app.sim_ui.badges import render_banner, badge_html
+from app.sim_ui.theme import (
+    apply_theme,
+    PRIMARY,
+    PRIMARY_DARK,
+    PRIMARY_TINT,
+    BORDER,
+    TEXT_MAIN,
+    TEXT_SECONDARY,
+    BADGE_REAL_BG,
+    BADGE_REAL_TEXT,
+)
+from app.sim_ui.patients_list import render_patients_list, render_add_patient_page
 from app.sim_ui.patient_view import render_patient_view
 from app.sim_ui.real_patients import render_real_patients
 from app.sim_ui.scenario_sandbox import render_scenario_sandbox
 from app.sim_ui.assumptions_view import render_assumptions_view
+from src.sim.store import list_patients, list_presets, list_custom
 
 st.set_page_config(
-    page_title="Virtual Patient Simulation Workspace",
-    page_icon="🩺",
+    page_title="Digital Twin Workspace",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 
 def main() -> None:
-    # Custom Dark Navy & Cyan Glow Theme
+    # Clinical white & blue theme
     apply_theme()
 
-    # Mandatory Research Disclaimer Banner at top of page
-    render_banner()
+    # Load patient list for sidebar selection
+    all_patients = list_patients(include_presets=True)
+    patient_ids = [p["id"] for p in all_patients]
+    default_id = st.session_state.get("selected_patient_id", "well_controlled_45")
+    if default_id not in patient_ids and patient_ids:
+        default_id = patient_ids[0]
+        st.session_state["selected_patient_id"] = default_id
 
-    # Sidebar Navigation
-    st.sidebar.title("🩺 Sim Workspace")
-    st.sidebar.caption("Virtual Patient Twin & Scenario Explorer")
+    # ─── Sidebar: Header & Product Name ──────────────────────────────────────
+    st.sidebar.markdown(
+        f"""
+        <div style="padding: 4px 0 12px 0; border-bottom: 1px solid {BORDER}; margin-bottom: 12px;">
+            <div style="font-size: 18px; font-weight: 700; color: {PRIMARY_DARK}; letter-spacing: -0.01em;">
+                Digital Twin Workspace
+            </div>
+            <div style="font-size: 11px; color: {TEXT_SECONDARY}; font-weight: 500; margin-top: 2px;">
+                Research prototype, simulated patients
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
+    # ─── Sidebar: Navigation ─────────────────────────────────────────────────
     nav_options = [
         "👥 Patients Directory",
         "🔬 Patient View & Risk",
         "🧪 Scenario Sandbox",
+        "➕ Add Patient",
         "📋 Real Reference Patients",
         "⚙️ Simulation Assumptions",
     ]
 
-    # Map session state navigation if set from inspect buttons
+    def clean_nav_label(opt: str) -> str:
+        clean_map = {
+            "👥 Patients Directory": "Patients Directory",
+            "🔬 Patient View & Risk": "Patient View",
+            "🧪 Scenario Sandbox": "Scenario Sandbox",
+            "➕ Add Patient": "Add Patient",
+            "📋 Real Reference Patients": "Real Reference Patients",
+            "⚙️ Simulation Assumptions": "Simulation Assumptions",
+        }
+        return clean_map.get(opt, opt)
+
     active_nav = st.session_state.get("active_nav")
-    default_idx = 0
-    if active_nav == "Patient View":
-        default_idx = 1
-    elif active_nav == "Scenario Sandbox":
-        default_idx = 2
-    elif active_nav == "Real Patients":
-        default_idx = 3
-    elif active_nav == "Assumptions":
-        default_idx = 4
+    default_nav_idx = 0
+    if active_nav:
+        for idx, opt in enumerate(nav_options):
+            if active_nav.lower() == opt.lower() or active_nav.lower() == clean_nav_label(opt).lower():
+                default_nav_idx = idx
+                break
 
     chosen_nav = st.sidebar.radio(
         "Navigation",
         nav_options,
-        index=default_idx,
+        index=default_nav_idx,
+        format_func=clean_nav_label,
         key="main_nav_radio",
+        label_visibility="collapsed",
     )
-
-    # Reset active_nav state
-    if "active_nav" in st.session_state:
-        st.session_state["active_nav"] = None
+    st.session_state["active_nav"] = clean_nav_label(chosen_nav)
 
     st.sidebar.divider()
+
+    # ─── Sidebar: Patient List (Preset & Custom) ─────────────────────────────
     st.sidebar.markdown(
-        """
-        **Honesty Badges:**
-        - <span style='background:#064e3b;color:#6ee7b7;padding:1px 6px;border-radius:3px;font-size:0.75rem;'>REAL</span> Observed study data
-        - <span style='background:#4c1d95;color:#ddd6fe;padding:1px 6px;border-radius:3px;font-size:0.75rem;'>SIMULATED</span> Synthetic model data
-        - <span style='background:#78350f;color:#fde68a;padding:1px 6px;border-radius:3px;font-size:0.75rem;'>USER-ENTERED</span> Clinician typed
-        - <span style='background:#1f2937;color:#9ca3af;padding:1px 6px;border-radius:3px;font-size:0.75rem;'>NOT AVAILABLE</span> Modality not in study
+        f"""
+        <div style="font-size: 12px; font-weight: 600; color: {PRIMARY_DARK}; margin-bottom: 6px;">
+            Patients
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    def format_patient_label(pid: str) -> str:
+        for p in all_patients:
+            if p["id"] == pid:
+                tag = "PRESET" if p["type"] == "preset" else "CUSTOM"
+                return f"{p['name']} ({tag})"
+        return pid
+
+    cur_idx = patient_ids.index(default_id) if default_id in patient_ids else 0
+    selected_sidebar_pid = st.sidebar.selectbox(
+        "Select Patient",
+        patient_ids,
+        index=cur_idx,
+        format_func=format_patient_label,
+        key="sidebar_patient_selector",
+        label_visibility="collapsed",
+    )
+    if selected_sidebar_pid != st.session_state.get("selected_patient_id"):
+        st.session_state["selected_patient_id"] = selected_sidebar_pid
+        st.rerun()
+
+    # Visual highlight of selected patient info
+    cur_p = next((p for p in all_patients if p["id"] == st.session_state.get("selected_patient_id")), None)
+    if cur_p:
+        is_preset = cur_p["type"] == "preset"
+        badge_type = (
+            f"<span style='background:{PRIMARY_TINT}; color:{PRIMARY_DARK}; font-size:10px; "
+            f"font-weight:700; padding:1px 5px; border-radius:3px;'>PRESET</span>"
+            if is_preset
+            else f"<span style='background:{BADGE_REAL_BG}; color:{BADGE_REAL_TEXT}; font-size:10px; "
+            f"font-weight:700; padding:1px 5px; border-radius:3px;'>CUSTOM</span>"
+        )
+        st.sidebar.markdown(
+            f"""
+            <div style="background-color: {PRIMARY_TINT}; border: 1px solid {PRIMARY};
+                        border-radius: 6px; padding: 8px 10px; margin-top: 6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size: 12px; font-weight: 700; color: {PRIMARY_DARK};">{cur_p['name']}</span>
+                    {badge_type}
+                </div>
+                <div style="font-size: 11px; color: {TEXT_SECONDARY}; margin-top: 3px;">
+                    Age {cur_p.get('age', '--')} · HbA1c {cur_p.get('hba1c', '--')}% · BMI {cur_p.get('bmi', '--')}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.sidebar.divider()
+
+    # ─── Sidebar: Provenance Key ─────────────────────────────────────────────
+    st.sidebar.markdown(
+        f"""
+        <div style="font-size: 12px; font-weight: 600; color: {PRIMARY_DARK}; margin-bottom: 6px;">
+            Provenance Key
+        </div>
+        <div class="prov-key">
+            <div>{badge_html('REAL')} Observed study data</div>
+            <div>{badge_html('SIMULATED')} Synthetic model trace</div>
+            <div>{badge_html('USER-ENTERED')} Clinician typed</div>
+            <div>{badge_html('NOT AVAILABLE')} Modality not in study</div>
+        </div>
         """,
         unsafe_allow_html=True,
     )
     st.sidebar.caption(
-        "Built for Happiest Health Digital Twin challenge. "
-        "Simulated outputs are pipeline demonstrations, not clinical evidence."
+        "Happiest Health Digital Twin prototype. Simulated outputs demonstrate "
+        "twin pipelines, not clinical evidence."
     )
 
-    # Route to selected page
-    if chosen_nav == "👥 Patients Directory":
+    # ─── Top Bar: Product Name, Prototype Label, Patient Search ──────────────
+    top_c1, top_c2 = st.columns([2, 1])
+    with top_c1:
+        st.markdown(
+            f"""
+            <div style="display: flex; align-items: baseline; gap: 12px; padding: 4px 0 10px 0;">
+                <span style="font-size: 20px; font-weight: 700; color: {PRIMARY_DARK};">
+                    Digital Twin Workspace
+                </span>
+                <span style="background: {PRIMARY_TINT}; color: {PRIMARY_DARK}; font-size: 11px;
+                             font-weight: 600; padding: 2px 8px; border-radius: 4px; border: 1px solid {BORDER};">
+                    Research prototype, simulated patients
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with top_c2:
+        search_kw = st.text_input(
+            "Search patients",
+            "",
+            placeholder="Search patient name...",
+            label_visibility="collapsed",
+            key="top_bar_patient_search",
+        )
+        if search_kw.strip():
+            for p in all_patients:
+                if search_kw.strip().lower() in p["name"].lower():
+                    if p["id"] != st.session_state.get("selected_patient_id"):
+                        st.session_state["selected_patient_id"] = p["id"]
+                        st.rerun()
+
+    # Mandatory Research Disclaimer Banner
+    render_banner()
+
+    # ─── Main View Routing ───────────────────────────────────────────────────
+    if "Patients Directory" in chosen_nav:
         render_patients_list()
-    elif chosen_nav == "🔬 Patient View & Risk":
+    elif "Patient View" in chosen_nav:
         render_patient_view()
-    elif chosen_nav == "🧪 Scenario Sandbox":
+    elif "Scenario Sandbox" in chosen_nav:
         render_scenario_sandbox()
-    elif chosen_nav == "📋 Real Reference Patients":
+    elif "Add Patient" in chosen_nav:
+        render_add_patient_page()
+    elif "Real Reference" in chosen_nav:
         render_real_patients()
-    elif chosen_nav == "⚙️ Simulation Assumptions":
+    elif "Assumptions" in chosen_nav:
         render_assumptions_view()
 
 
