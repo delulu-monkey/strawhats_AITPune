@@ -1,0 +1,48 @@
+{
+  "name": "Poorly-Controlled 55yo (Short Sleep)",
+  "description": "55-year-old with poorly controlled T2D, chronic sleep debt (~5h sleep), and elevated insulin resistance.",
+  "source": "simulated",
+  "seed": 202,
+  "age": 55,
+  "sex": "F",
+  "height_cm": 162.0,
+  "weight_kg": 84.0,
+  "hba1c": 8.8,
+  "fasting_glucose": 168.0,
+  "insulin": 24.0,
+  "triglycerides": 240.0,
+  "total_cholesterol": 235.0,
+  "hdl": 38.0,
+  "ldl": 149.0,
+  "diagnoses": [
+    "Type 2 Diabetes Mellitus",
+    "Insomnia",
+    "Metabolic Syndrome"
+  ],
+  "medications": [
+    "Metformin 1000mg"
+  ],
+  "genetic_markers": {
+    "variant_alleles": {
+      "TCF7L2": 2,
+      "PPARG": 1,
+      "KCNJ11": 1,
+      "CDKAL1": 1,
+      "SLC30A8": 1
+    },
+    "genetic_risk_score": 72.0
+  },
+  "lifestyle": {
+    "typical_sleep_hours": 5.0,
+    "sleep_variability_hours": 0.8,
+    "bedtime_hour": 23.5,
+    "steps_per_day": 3800,
+    "resting_heart_rate": 78.0,
+    "meal_times": {
+      "breakfast": [8, 30],
+      "lunch": [13, 30],
+      "dinner": [21, 0]
+    },
+    "unlogged_snack_prob": 0.045
+  }
+}

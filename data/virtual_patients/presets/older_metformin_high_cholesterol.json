@@ -1,0 +1,50 @@
+{
+  "name": "Older Patient on Metformin (High Cholesterol)",
+  "description": "68-year-old on metformin therapy with established T2D, hypercholesterolemia, and moderate mobility.",
+  "source": "simulated",
+  "seed": 505,
+  "age": 68,
+  "sex": "M",
+  "height_cm": 168.0,
+  "weight_kg": 78.0,
+  "hba1c": 7.3,
+  "fasting_glucose": 134.0,
+  "insulin": 18.0,
+  "triglycerides": 220.0,
+  "total_cholesterol": 260.0,
+  "hdl": 40.0,
+  "ldl": 176.0,
+  "diagnoses": [
+    "Type 2 Diabetes Mellitus",
+    "Hypercholesterolemia",
+    "Essential Hypertension"
+  ],
+  "medications": [
+    "Metformin 1000mg",
+    "Atorvastatin 20mg",
+    "Amlodipine 5mg"
+  ],
+  "genetic_markers": {
+    "variant_alleles": {
+      "TCF7L2": 1,
+      "PPARG": 1,
+      "KCNJ11": 1,
+      "CDKAL1": 1,
+      "SLC30A8": 0
+    },
+    "genetic_risk_score": 64.0
+  },
+  "lifestyle": {
+    "typical_sleep_hours": 6.8,
+    "sleep_variability_hours": 0.6,
+    "bedtime_hour": 21.5,
+    "steps_per_day": 4500,
+    "resting_heart_rate": 71.0,
+    "meal_times": {
+      "breakfast": [8, 0],
+      "lunch": [13, 0],
+      "dinner": [20, 0]
+    },
+    "unlogged_snack_prob": 0.025
+  }
+}

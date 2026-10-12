@@ -1,0 +1,45 @@
+{
+  "name": "Lean Patient with High Genetic Risk",
+  "description": "34-year-old lean individual (BMI 20.8) with high polygenic T2D risk and beta-cell sensitivity.",
+  "source": "simulated",
+  "seed": 606,
+  "age": 34,
+  "sex": "F",
+  "height_cm": 170.0,
+  "weight_kg": 60.0,
+  "hba1c": 6.1,
+  "fasting_glucose": 112.0,
+  "insulin": 9.0,
+  "triglycerides": 105.0,
+  "total_cholesterol": 180.0,
+  "hdl": 58.0,
+  "ldl": 101.0,
+  "diagnoses": [
+    "Early Impaired Glucose Tolerance",
+    "Family History of Type 2 Diabetes"
+  ],
+  "medications": [],
+  "genetic_markers": {
+    "variant_alleles": {
+      "TCF7L2": 2,
+      "PPARG": 2,
+      "KCNJ11": 2,
+      "CDKAL1": 1,
+      "SLC30A8": 2
+    },
+    "genetic_risk_score": 89.0
+  },
+  "lifestyle": {
+    "typical_sleep_hours": 7.0,
+    "sleep_variability_hours": 0.5,
+    "bedtime_hour": 22.5,
+    "steps_per_day": 7500,
+    "resting_heart_rate": 67.0,
+    "meal_times": {
+      "breakfast": [8, 0],
+      "lunch": [12, 45],
+      "dinner": [19, 30]
+    },
+    "unlogged_snack_prob": 0.02
+  }
+}

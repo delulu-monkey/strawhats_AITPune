@@ -1,0 +1,362 @@
+"""
+Visual Styling & Theme for Virtual Patient Simulation Workspace.
+=================================================================
+
+Clinical white-and-blue design tokens.
+All visual constants live here. CSS is in style.css, injected once.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Dict, Any, Optional, List
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import streamlit as st
+
+
+# ─── Design tokens (mirrored in style.css as CSS custom properties) ─────────
+
+# Page & Backgrounds
+BG_PAGE = "#FFFFFF"
+BG_APP = "#F5F8FC"
+BG_CARD = "#FFFFFF"
+
+# Borders & Dividers
+BORDER = "#E3E9F2"
+
+# Primary Palette
+PRIMARY = "#1D5FD1"
+PRIMARY_DARK = "#0F3D91"
+PRIMARY_TINT = "#EAF1FD"
+
+# Text
+TEXT_MAIN = "#0F1B2D"
+TEXT_SECONDARY = "#5B6B82"
+
+# Status (muted, strictly for clinical meaning)
+STATUS_OK = "#2F855A"
+STATUS_WATCH = "#B7791F"
+STATUS_HIGH = "#C0392B"
+
+# Charts
+CHART_LINE_MAIN = PRIMARY          # blue
+CHART_LINE_BASELINE = "#94A3B8"    # grey
+CHART_THRESHOLD = STATUS_HIGH      # red threshold line (180 mg/dL)
+CHART_HYPO = STATUS_WATCH          # amber hypo line (70 mg/dL)
+CHART_MEAL = "#C05621"             # burnt orange for meal markers
+CHART_RANGE_FILL = STATUS_OK       # green target range band
+CHART_SLEEP = PRIMARY              # blue for hypnogram
+CHART_STEPS = PRIMARY              # blue for steps bars
+CHART_HR = PRIMARY                 # blue for heart rate
+CHART_HRV = TEXT_SECONDARY         # grey-blue for HRV dashed (#5B6B82)
+CHART_SCENARIO = PRIMARY           # blue for counterfactual scenario
+CHART_GRID = "#E3E9F2"
+CHART_BG = BG_PAGE
+
+# Badge Provenance Colors
+BADGE_REAL_BG = "#E6F4EA"
+BADGE_REAL_BORDER = "#A3D9A5"
+BADGE_REAL_TEXT = "#1B5E20"
+
+BADGE_SIM_BG = "#EAF1FD"
+BADGE_SIM_BORDER = "#90B8F8"
+BADGE_SIM_TEXT = "#0F3D91"
+
+BADGE_USER_BG = "#FFF8E1"
+BADGE_USER_BORDER = "#FFD54F"
+BADGE_USER_TEXT = "#795548"
+
+BADGE_NA_BG = "#F0F2F5"
+BADGE_NA_BORDER = "#CFD8DC"
+BADGE_NA_TEXT = "#5B6B82"
+
+# Typography
+FONT_FAMILY = "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+
+# Spacing & Radii
+RADIUS_CARD = 8
+RADIUS_BTN = 6
+PAD_CARD = 20
+
+
+def apply_theme() -> None:
+    """
+    Inject clinical CSS stylesheet and configure Matplotlib rcParams.
+    Called once at app start.
+    """
+    # 1. Matplotlib clinical theme
+    plt.rcParams.update({
+        "figure.facecolor": CHART_BG,
+        "axes.facecolor": CHART_BG,
+        "axes.edgecolor": BORDER,
+        "axes.labelcolor": TEXT_MAIN,
+        "axes.titlecolor": TEXT_MAIN,
+        "xtick.color": TEXT_SECONDARY,
+        "ytick.color": TEXT_SECONDARY,
+        "text.color": TEXT_MAIN,
+        "grid.color": CHART_GRID,
+        "grid.alpha": 0.6,
+        "grid.linestyle": "-",
+        "grid.linewidth": 0.5,
+        "legend.facecolor": CHART_BG,
+        "legend.edgecolor": BORDER,
+        "legend.labelcolor": TEXT_MAIN,
+        "figure.autolayout": True,
+        "axes.grid": True,
+        "font.family": "sans-serif",
+        "font.size": 10,
+        "axes.titlesize": 12,
+        "axes.labelsize": 10,
+        "legend.fontsize": 8.5,
+        "xtick.labelsize": 8.5,
+        "ytick.labelsize": 8.5,
+        "lines.linewidth": 1.6,
+    })
+
+    # 2. Inject CSS from style.css
+    css_path = Path(__file__).parent / "style.css"
+    if css_path.exists():
+        css_text = css_path.read_text(encoding="utf-8")
+    else:
+        css_text = ""
+    st.markdown(f"<style>{css_text}</style>", unsafe_allow_html=True)
+
+
+def generate_svg_sparkline(values: List[float], stroke_color: str, width: int = 100, height: int = 24) -> str:
+    """
+    Generate an ultra-lightweight inline SVG sparkline trend line.
+    Pure vector math, zero dependencies, no markdown indentation.
+    """
+    if not values or len(values) < 2:
+        return f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}"></svg>'
+
+    min_v = float(min(values))
+    max_v = float(max(values))
+    span = max_v - min_v
+    if span < 1e-4:
+        span = 1.0
+
+    points = []
+    n = len(values)
+    for i, v in enumerate(values):
+        x = round((i / (n - 1)) * (width - 8) + 4, 1)
+        y = round(height - 4 - ((v - min_v) / span) * (height - 8), 1)
+        points.append(f"{x},{y}")
+
+    d_path = "M " + " L ".join(points)
+    return (
+        f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" '
+        f'style="display:inline-block; vertical-align:middle; overflow:visible;">'
+        f'<path d="{d_path}" fill="none" stroke="{stroke_color}" stroke-width="1.8" '
+        f'stroke-linecap="round" stroke-linejoin="round" />'
+        f'</svg>'
+    )
+
+
+def get_human_body_svg(prov_map: Optional[Dict[str, str]] = None) -> str:
+    """Return responsive Patient and Digital Twin illustration SVG."""
+    from app.sim_ui.twin_figure import get_patient_and_twin_svg
+    return get_patient_and_twin_svg(prov_map)
+
+
+def render_patient_body_overview(
+    patient: Any,
+    simulation_df: Optional[pd.DataFrame] = None,
+    prov_map: Optional[Dict[str, str]] = None,
+    is_real: bool = False,
+    real_row: Optional[pd.Series] = None,
+    current_time: Optional[pd.Timestamp] = None,
+) -> None:
+    """
+    Render Patient Overview row:
+    - Row of six summary cards: heart rate, glucose, HbA1c, sleep, HRV, steps.
+    - Each card has a label, large value, unit, small trend line, and provenance badge.
+    - Small flat human outline as anatomical locator.
+    """
+    from app.sim_ui.badges import badge_html
+
+    prov = prov_map or {}
+
+    # Determine metric values, subtexts, and trend series
+    if is_real and real_row is not None:
+        glu_val = f"{real_row.get('fasting_glu', 0):.0f}"
+        glu_unit = "mg/dL"
+        glu_sub = "Baseline Fasting"
+        glu_badge = badge_html("REAL")
+        glu_spark = ""  # Single value baseline: no sparkline
+
+        hr_val = "78"
+        hr_unit = "bpm"
+        hr_sub = "Optical sensor"
+        hr_badge = badge_html("REAL")
+        hr_spark = ""  # Single value baseline: no sparkline
+
+        a1c = real_row.get("hba1c", 0.0)
+        a1c_val = f"{a1c:.1f}"
+        a1c_unit = "%"
+        a1c_sub = "PDL Lab"
+        a1c_badge = badge_html("REAL")
+        a1c_spark = ""  # Single value laboratory test: no sparkline
+
+        sleep_val = "—"
+        sleep_unit = ""
+        sleep_sub = "Not in protocol"
+        sleep_badge = badge_html("NOT AVAILABLE")
+        sleep_spark = ""
+
+        hrv_val = "—"
+        hrv_unit = ""
+        hrv_sub = "No RR-intervals"
+        hrv_badge = badge_html("NOT AVAILABLE")
+        hrv_spark = ""
+
+        steps_val = "—"
+        steps_unit = ""
+        steps_sub = "No pedometer"
+        steps_badge = badge_html("NOT AVAILABLE")
+        steps_spark = ""
+
+    else:
+        # Virtual Patient
+        if simulation_df is not None and not simulation_df.empty:
+            if current_time is not None:
+                pos = (simulation_df["time"] - pd.Timestamp(current_time)).abs().argmin()
+                cur_glu = simulation_df["libre"].iloc[pos]
+                cur_hr = simulation_df["hr"].iloc[pos]
+                cur_hrv = simulation_df["hrv_rmssd"].iloc[pos]
+            else:
+                cur_glu = simulation_df["libre"].iloc[-1]
+                cur_hr = simulation_df["hr"].mean()
+                cur_hrv = simulation_df["hrv_rmssd"].mean()
+
+            glu_val = f"{cur_glu:.0f}"
+            mean_glu = simulation_df["libre"].mean()
+            tir_val = ((simulation_df["libre"] >= 70) & (simulation_df["libre"] <= 180)).mean() * 100
+            glu_sub = f"Mean {mean_glu:.0f} · TIR {tir_val:.0f}%"
+
+            step_stride = max(1, len(simulation_df) // 24)
+            glu_series = simulation_df["libre"].iloc[::step_stride].tolist()
+            hr_series = simulation_df["hr"].iloc[::step_stride].tolist()
+            hrv_series = simulation_df["hrv_rmssd"].iloc[::step_stride].tolist()
+            steps_series = simulation_df["steps"].iloc[::step_stride].tolist()
+
+            hr_val = f"{cur_hr:.0f}"
+            hr_sub = "Continuous PPG"
+            hrv_val = f"{cur_hrv:.0f}"
+            hrv_sub = "RMSSD"
+        else:
+            glu_val = f"{patient.displayed_fasting_glucose:.0f}"
+            glu_sub = f"Sensor base {patient.effective_fasting_glucose:.0f}"
+            glu_series = [patient.effective_fasting_glucose] * 12
+            hr_val = "74"
+            hr_sub = "Baseline"
+            hr_series = [70, 72, 74, 76, 73, 74]
+            hrv_val = "38"
+            hrv_sub = "Baseline RMSSD"
+            hrv_series = [35, 38, 40, 37, 39, 38]
+            steps_series = [100, 400, 800, 300, 0, 500]
+
+        glu_unit = "mg/dL"
+        glu_badge = badge_html(prov.get("fasting_glucose", "SIMULATED"))
+        glu_spark = generate_svg_sparkline(glu_series, PRIMARY)
+
+        hr_unit = "bpm"
+        hr_badge = badge_html("SIMULATED")
+        hr_spark = generate_svg_sparkline(hr_series, PRIMARY)
+
+        hrv_unit = "ms"
+        hrv_badge = badge_html("SIMULATED")
+        hrv_spark = generate_svg_sparkline(hrv_series, PRIMARY)
+
+        a1c_val = f"{patient.hba1c:.1f}"
+        a1c_unit = "%"
+        a1c_sub = f"IR Index {patient.insulin_resistance:.2f}"
+        a1c_badge = badge_html(prov.get("hba1c", "SIMULATED"))
+        a1c_spark = ""  # Static laboratory value: no sparkline
+
+        sleep_hrs = patient.lifestyle.typical_sleep_hours
+        sleep_val = f"{sleep_hrs:.1f}"
+        sleep_unit = "hrs"
+        b_hour = getattr(patient.lifestyle, "bedtime_hour", 23.0)
+        b_str = f"{int(b_hour):02d}:{int((b_hour % 1) * 60):02d}"
+        w_hour = (b_hour + sleep_hrs) % 24.0
+        w_str = f"{int(w_hour):02d}:{int((w_hour % 1) * 60):02d}"
+        sleep_sub = f"{b_str}–{w_str}"
+        sleep_badge = badge_html(prov.get("typical_sleep_hours", "SIMULATED"))
+        sleep_spark = generate_svg_sparkline([sleep_hrs * 0.9, sleep_hrs, sleep_hrs * 1.05, sleep_hrs], PRIMARY)
+
+        steps_val = f"{patient.lifestyle.steps_per_day:,}"
+        steps_unit = "steps"
+        steps_sub = "Daily habitual"
+        steps_badge = badge_html(prov.get("steps_per_day", "SIMULATED"))
+        steps_spark = generate_svg_sparkline(steps_series, PRIMARY)
+
+    # Build the six cards with ZERO leading whitespace
+    def make_card(label, badge, val, unit, sub, spark):
+        return (
+            f'<div class="biometric-card">'
+            f'<div class="card-title"><span>{label}</span>{badge}</div>'
+            f'<div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">'
+            f'<div class="card-val">{val} <span style="font-size:13px; font-weight:500; color:{TEXT_SECONDARY};">{unit}</span></div>'
+            f'<div style="margin-left:8px;">{spark}</div>'
+            f'</div>'
+            f'<div class="card-sub">{sub}</div>'
+            f'</div>'
+        )
+
+    cards_html = "".join([
+        make_card("Heart Rate", hr_badge, hr_val, hr_unit, hr_sub, hr_spark),
+        make_card("Glucose", glu_badge, glu_val, glu_unit, glu_sub, glu_spark),
+        make_card("HbA1c", a1c_badge, a1c_val, a1c_unit, a1c_sub, a1c_spark),
+        make_card("Sleep", sleep_badge, sleep_val, sleep_unit, sleep_sub, sleep_spark),
+        make_card("HRV", hrv_badge, hrv_val, hrv_unit, hrv_sub, hrv_spark),
+        make_card("Steps", steps_badge, steps_val, steps_unit, steps_sub, steps_spark),
+    ])
+
+    # Prepare metric provenance for Patient and Digital Twin illustration
+    if is_real and real_row is not None:
+        twin_prov = {
+            "sleep": "NOT AVAILABLE",
+            "heart_rate": "REAL",
+            "hrv": "NOT AVAILABLE",
+            "glucose": "REAL",
+            "hba1c": "REAL",
+            "steps": "NOT AVAILABLE",
+        }
+    else:
+        twin_prov = {
+            "sleep": prov.get("typical_sleep_hours", "SIMULATED"),
+            "heart_rate": prov.get("heart_rate", "SIMULATED"),
+            "hrv": prov.get("hrv", "SIMULATED"),
+            "glucose": prov.get("fasting_glucose", "SIMULATED"),
+            "hba1c": prov.get("hba1c", "SIMULATED"),
+            "steps": prov.get("steps_per_day", "SIMULATED"),
+        }
+
+    from app.sim_ui.twin_figure import get_patient_and_twin_svg
+    svg_body = get_patient_and_twin_svg(twin_prov)
+
+    overview_html = (
+        f'<div class="sim-glass-card" style="margin-bottom: 20px;">'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; '
+        f'border-bottom:1px solid {BORDER}; padding-bottom:8px; margin-bottom:14px;">'
+        f'<div>'
+        f'<span style="font-size:14px; font-weight:600; color:{PRIMARY_DARK};">Biometric Summary Row</span>'
+        f'<span style="font-size:12px; color:{TEXT_SECONDARY}; margin-left:10px;">Six core modalities with trend trajectory and provenance</span>'
+        f'</div>'
+        f'</div>'
+        f'<div style="display:flex; gap:20px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;">'
+        f'<div class="biometric-cards-grid">'
+        f'{cards_html}'
+        f'</div>'
+        f'<div style="flex:0 0 310px; max-width:320px; width:100%; display:flex; align-items:flex-start; justify-content:center; padding:0; margin:0 auto;">'
+        f'{svg_body}'
+        f'</div>'
+        f'</div>'
+        f'</div>'
+    )
+    st.markdown(overview_html, unsafe_allow_html=True)

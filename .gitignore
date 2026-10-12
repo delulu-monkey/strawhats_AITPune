@@ -3,3 +3,7 @@ __pycache__/
 .ipynb_checkpoints/
 data/raw/cgmacros/
 data/raw/indb/
+data/simulated/
+data/virtual_patients/custom/
+*.parquet
+.pytest_cache/
