@@ -48,12 +48,9 @@ st.set_page_config(
 )
 
 
-import streamlit.components.v1 as components
-
-
 def main() -> None:
     # One-time safeguard: clear any stored collapsed sidebar state in localStorage
-    components.html(
+    st.html(
         """
         <script>
         try {
@@ -64,9 +61,7 @@ def main() -> None:
             });
         } catch (e) {}
         </script>
-        """,
-        height=0,
-        width=0,
+        """
     )
 
     # Clinical white & blue theme
@@ -160,18 +155,23 @@ def main() -> None:
             grp = bio_df.loc[bio_df["subject"] == s_num, "group"].iloc[0]
             return f"CGMacros-{s_num:03d} ({grp.upper()})"
 
-        sel_real_idx = real_subjects.index(cur_real) if cur_real in real_subjects else 0
+        def _on_sidebar_real_change():
+            val = st.session_state.get("sidebar_real_participant_selector")
+            if val is not None:
+                st.session_state["selected_real_subject"] = val
+                st.session_state["page_real_patient_selector"] = val
+
+        sel_real_idx = real_subjects.index(cur_real) if ("sidebar_real_participant_selector" not in st.session_state and cur_real in real_subjects) else None
         selected_real = st.sidebar.selectbox(
             "Select Real Participant",
             real_subjects,
             index=sel_real_idx,
             format_func=format_real_label,
             key="sidebar_real_participant_selector",
+            on_change=_on_sidebar_real_change,
             label_visibility="collapsed",
         )
-        if selected_real != st.session_state.get("selected_real_subject"):
-            st.session_state["selected_real_subject"] = selected_real
-            st.rerun()
+        cur_real = selected_real
 
         row_real = bio_df[bio_df["subject"] == cur_real].iloc[0]
         st.sidebar.markdown(

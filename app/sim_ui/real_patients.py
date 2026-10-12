@@ -95,16 +95,21 @@ def render_real_patients() -> None:
         current_real = default_subjs[0] if default_subjs else subjects[0]
         st.session_state["selected_real_subject"] = current_real
 
+    def _on_page_real_change():
+        val = st.session_state.get("page_real_patient_selector")
+        if val is not None:
+            st.session_state["selected_real_subject"] = val
+            st.session_state["sidebar_real_participant_selector"] = val
+
+    cur_idx = subjects.index(current_real) if ("page_real_patient_selector" not in st.session_state and current_real in subjects) else None
     chosen_s = st.selectbox(
         "Select Real CGMacros Participant",
         subjects,
-        index=subjects.index(current_real),
+        index=cur_idx,
         format_func=lambda s: subj_labels[s],
         key="page_real_patient_selector",
+        on_change=_on_page_real_change,
     )
-    if chosen_s != st.session_state.get("selected_real_subject"):
-        st.session_state["selected_real_subject"] = chosen_s
-        st.rerun()
 
     row = bio_df[bio_df["subject"] == chosen_s].iloc[0]
 
