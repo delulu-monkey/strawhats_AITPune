@@ -33,9 +33,20 @@ ASSUMPTION_CATEGORIES = [
     {
         "category": "Insulin Resistance (IR) Model",
         "parameters": [
-            ("IR_HBA1C_FACTOR_PER_PCT", 0.45, "per % above 5.0", "Calibrated for post-meal rise scaling across healthy/prediab/T2D groups (assumption)"),
-            ("IR_BMI_FACTOR_PER_UNIT", 0.020, "per kg/m² above 22", "Models excess adiposity contribution to peripheral insulin resistance (assumption)"),
-            ("GENETIC_IR_MAX_BOOST", 0.20, "multiplier at score=100", "Maximum insulin resistance boost from polygenic risk variants (assumption)"),
+            ("IR_HBA1C_FACTOR_PER_PCT", 0.45, "per % above 5.0", "Calibrated for post-meal rise scaling across healthy/prediab/T2D groups (assumption, not fitted to data)"),
+            ("IR_BMI_FACTOR_PER_UNIT", 0.020, "per kg/m² above 22", "Models excess adiposity contribution to peripheral insulin resistance (assumption, not fitted to data)"),
+            ("GENETIC_IR_MAX_BOOST", 0.20, "multiplier at score=100", "Maximum insulin resistance boost from polygenic risk variants (assumption, not fitted to data)"),
+        ],
+    },
+    {
+        "category": "Polygenic Risk Variants & Genetic Weights (T2D)",
+        "parameters": [
+            ("TCF7L2_rs7903146", "Risk allele: T", "14 pts/allele (max 28)", "OR ~1.37; Wnt effector, strongest common T2D locus (Grant et al. 2006, Mahajan et al. 2018) — assumption, not fitted to data"),
+            ("SLC30A8_rs13266634", "Risk allele: C (Arg325)", "9 pts/allele (max 18)", "OR ~1.12; Zinc transporter ZnT8 in beta-cells (Sladek et al. 2007) — assumption, not fitted to data"),
+            ("KCNJ11_rs5219", "Risk allele: T (Lys23)", "9 pts/allele (max 18)", "OR ~1.14; Kir6.2 potassium channel, insulin secretion (Gloyn et al. 2003) — assumption, not fitted to data"),
+            ("PPARG_rs1801282", "Risk allele: C (Pro12)", "9 pts/allele (max 18)", "OR ~1.14; Adipocyte differentiation; note: common Pro allele is risk allele, minor Ala is protective (Altshuler et al. 2000, Deeb et al. 1998) — assumption, not fitted to data"),
+            ("FTO_rs9939609", "Risk allele: A", "9 pts/allele (max 18)", "OR ~1.15; RNA demethylase, obesity/BMI-mediated T2D risk (Frayling et al. 2007) — assumption, not fitted to data"),
+            ("COMPOSITE_GENETIC_SCORE", "0–100", "score units", "Computed directly from sum of (allele count × weight) across the 5 loci — assumption, not fitted to data"),
         ],
     },
     {

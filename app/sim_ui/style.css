@@ -1037,8 +1037,10 @@ button:disabled {
   margin-bottom: 16px;
 }
 .risk-panel.risk-ok { border-left: 5px solid var(--tw-status-ok); }
+.risk-panel.risk-neutral { border-left: 5px solid var(--tw-text-secondary); }
 .risk-panel.risk-watch { border-left: 5px solid var(--tw-status-watch); }
 .risk-panel.risk-high { border-left: 5px solid var(--tw-status-high); }
+.risk-panel.risk-ood { border-left: 5px solid #94A3B8; }
 
 /* ─── Patient Header ─── */
 .patient-header {

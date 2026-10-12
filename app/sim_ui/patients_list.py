@@ -27,6 +27,11 @@ from src.sim.store import (
     update_patient,
     delete_patient,
 )
+from app.sim_ui.common import (
+    VARIANT_RISK_ALLELES,
+    VARIANT_WEIGHTS,
+    compute_genetic_risk_score,
+)
 from app.sim_ui.badges import badge_html, label_with_badge
 from app.sim_ui.theme import (
     PRIMARY, PRIMARY_DARK, PRIMARY_TINT, BORDER,
@@ -218,14 +223,52 @@ def render_add_patient_form() -> None:
         snack_prob = ls6.number_input("Unlogged Snack Prob (per 5 min)", min_value=0.0, max_value=0.1, value=UNLOGGED_SNACK_PROB_PER_EPOCH, step=0.005, format="%.3f")
 
         st.markdown(f"#### 5. Genetic Markers & Polygenic Risk {badge_html('USER-ENTERED')}", unsafe_allow_html=True)
-        g1, g2 = st.columns([1, 2])
-        genetic_risk = g1.slider("Composite Genetic Risk Score (0–100)", min_value=0.0, max_value=100.0, value=50.0, step=1.0)
+        st.caption(
+            "Select risk allele counts (0 = non-carrier, 1 = heterozygous, 2 = homozygous). "
+            "Composite genetic risk score is read-only and computed directly from allele counts using documented weights. "
+            "Effect sizes are an explicit **assumption, not fitted to data**."
+        )
 
-        st.caption("Risk Allele Counts (0 = non-carrier, 1 = heterozygous, 2 = homozygous):")
         var_cols = st.columns(len(T2D_VARIANTS))
         variant_alleles = {}
         for idx, v in enumerate(T2D_VARIANTS):
-            variant_alleles[v] = var_cols[idx].selectbox(f"{v}", [0, 1, 2], index=0, key=f"add_var_{v}")
+            info = VARIANT_RISK_ALLELES.get(v, {})
+            risk_al = info.get("risk_allele", "Risk")
+            weight = VARIANT_WEIGHTS.get(v, 9.0)
+            short_name = v.split("_")[0]
+            with var_cols[idx]:
+                st.markdown(
+                    f"**{short_name}**<br>"
+                    f"<span style='font-size:11px; color:{TEXT_SECONDARY};'>Risk: <strong>{risk_al}</strong><br>({weight:.0f} pts/al)</span>",
+                    unsafe_allow_html=True,
+                )
+                variant_alleles[v] = st.selectbox(
+                    f"{v} Count",
+                    [0, 1, 2],
+                    index=0,
+                    key=f"add_var_{v}",
+                    label_visibility="collapsed",
+                )
+
+        computed_grs = compute_genetic_risk_score(variant_alleles)
+
+        # Published citations and PPARG Pro12 risk allele note (Requirement 6)
+        st.caption(
+            "• **TCF7L2 rs7903146:** Risk allele **T** (Grant et al. 2006, Mahajan et al. 2018; OR ~1.37)<br>"
+            "• **SLC30A8 rs13266634:** Risk allele **C** (Arg325; Sladek et al. 2007; OR ~1.12)<br>"
+            "• **KCNJ11 rs5219:** Risk allele **T** (Lys23; Gloyn et al. 2003; OR ~1.14)<br>"
+            "• **PPARG rs1801282:** Risk allele **C** (the common Pro allele is the risk allele; minor Ala12 is protective against T2D; Altshuler et al. 2000, Deeb et al. 1998; OR ~1.14)<br>"
+            "• **FTO rs9939609:** Risk allele **A** (Frayling et al. 2007; OR ~1.15)<br>"
+            "*(Variant effect sizes: assumption, not fitted to data)*",
+            unsafe_allow_html=True,
+        )
+
+        # Read-only computed composite risk score
+        st.metric(
+            "Composite Genetic Risk Score (0–100, Computed)",
+            f"{computed_grs:.0f} / 100",
+            help="Computed directly from risk allele counts using documented weights. Effect sizes are an explicit assumption, not fitted to data.",
+        )
 
         st.divider()
 
@@ -261,7 +304,7 @@ def render_add_patient_form() -> None:
                 "medications": medications,
                 "genetic_markers": {
                     "variant_alleles": variant_alleles,
-                    "genetic_risk_score": float(genetic_risk),
+                    "genetic_risk_score": float(computed_grs),
                 },
                 "lifestyle": {
                     "typical_sleep_hours": float(sleep_hours),

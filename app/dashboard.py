@@ -108,11 +108,21 @@ with right:
         st.warning("Glucose is below 70 mg/dL (low). This tool predicts high spikes only, "
                    "so a LOW spike risk does not mean the patient is safe.")
     if row.glu_now > THR:
-        st.info(f"Glucose is already {row.glu_now:.0f} mg/dL, above {THR}. "
-                "The model predicts new spikes only.")
+        st.markdown(
+            "<span style='background: #E2E8F0; color: #475569; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 4px; border: 1px solid #CBD5E1;'>"
+            "Already above 180 mg/dL. Spike prediction does not apply.</span>",
+            unsafe_allow_html=True,
+        )
     else:
         prob = float(risk["model"].predict_proba(x)[0, 1])
-        show_level(level(prob), f"Risk level: {level(prob)}")
+        if prob >= HIGH:
+            st.error(f"**HIGH ({prob:.0%})** — High statistical likelihood of exceeding 180 mg/dL. Alert thresholds: WATCH at 75%, HIGH at 91%.")
+        elif prob >= WATCH:
+            st.warning(f"**WATCH ({prob:.0%})** — Moderate spike probability. Alert thresholds: WATCH at 75%, HIGH at 91%.")
+        elif prob >= 0.25:
+            st.info(f"**Below alert threshold** — Model score: {prob:.0%} chance of exceeding 180 mg/dL in the next 2 hours. Alert thresholds: WATCH at 75%, HIGH at 91%.")
+        else:
+            st.success(f"**Below alert threshold** — Model score: {prob:.0%} chance of exceeding 180 mg/dL in the next 2 hours. Alert thresholds: WATCH at 75%, HIGH at 91%.")
         
         sv = explainer.shap_values(x)
         sv = sv[1] if isinstance(sv, list) else sv
@@ -121,21 +131,27 @@ with right:
         contrib = pd.Series(sv[0], index=FEAT).groupby(groups).sum().sort_values()
         contrib = contrib.drop(["age", "bmi", "male"], errors="ignore")
 
+        from app.sim_ui.common import FEATURE_LABELS
+
         def describe(f):
-            name, fmt = NAMES[f]
+            name, fmt = FEATURE_LABELS.get(f, (f.replace("_", " ").title(), "{:.1f}"))
             if f == "male":
                 return f"{name}: {'male' if row.male else 'female'}"
             if f == "time_of_day":
                 return f"{name}: {t0:%H:%M}"
-            return f"{name}: {fmt.format(row[f])}"
+            if fmt:
+                try:
+                    return f"{name}: {fmt.format(row[f])}"
+                except Exception:
+                    return f"{name}: {row[f]}"
+            return f"{name}: {row[f]}"
 
         st.markdown("**Why**")
         for f in contrib[contrib > 0].tail(3)[::-1].index:
             st.write(f"▲ raises risk: {describe(f)}")
         for f in contrib[contrib < 0].head(2).index:
             st.write(f"▼ lowers risk: {describe(f)}")
-        st.caption("Levels are tuned on held-out Type 2 diabetes data: WATCH catches more spikes "
-                   "with more false alarms, HIGH fewer of each.")
+        st.caption("Model attributions reflect patterns in the real CGMacros cohort and are not causal.")
 
 # ---------------- Meal what-if ----------------
 st.divider()

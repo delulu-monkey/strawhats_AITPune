@@ -31,6 +31,8 @@ from app.sim_ui.common import (
     load_models,
     load_indian_meals,
     run_simulation_cached,
+    FEATURE_LABELS,
+    get_friendly_feature_name,
 )
 from app.sim_ui.badges import badge_html, label_with_badge
 from app.sim_ui.theme import (
@@ -51,27 +53,6 @@ WATCH = 0.75
 HIGH = 0.91
 MEAL_ERR = 30.0
 CAPS = {"carbs": 250.0, "protein": 150.0, "fat": 150.0, "fiber": 60.0}
-
-FEATURE_LABELS = {
-    "glu_now": ("Current glucose", "{:.0f} mg/dL"),
-    "glu_chg_15m": ("Glucose change, last 15 min", "{:+.0f} mg/dL"),
-    "glu_chg_30m": ("Glucose change, last 30 min", "{:+.0f} mg/dL"),
-    "glu_chg_60m": ("Glucose change, last hour", "{:+.0f} mg/dL"),
-    "glu_mean_60m": ("Average glucose, last hour", "{:.0f} mg/dL"),
-    "glu_std_60m": ("Glucose variability, last hour", "{:.0f} mg/dL"),
-    "glu_max_120m": ("Highest glucose, last 2 hours", "{:.0f} mg/dL"),
-    "hr_mean_30m": ("Heart rate, last 30 min", "{:.0f} bpm"),
-    "mets_mean_30m": ("Activity intensity, last 30 min", "{:.1f} METs"),
-    "act_kcal_60m": ("Activity energy, last hour", "{:.0f} kcal"),
-    "carbs_3h": ("Carbs eaten, last 3 hours", "{:.0f} g"),
-    "protein_3h": ("Protein eaten, last 3 hours", "{:.0f} g"),
-    "fat_3h": ("Fat eaten, last 3 hours", "{:.0f} g"),
-    "fiber_3h": ("Fiber eaten, last 3 hours", "{:.0f} g"),
-    "min_since_meal": ("Time since last meal", "{:.0f} min"),
-    "time_of_day": ("Circadian phase / time", None),
-    "fasting_glu": ("Simulated overnight sensor baseline", "{:.0f} mg/dL"),
-    "hba1c": ("HbA1c baseline", "{:.1f}%"),
-}
 
 
 def render_patient_view() -> None:
@@ -189,75 +170,103 @@ def render_patient_view() -> None:
         unsafe_allow_html=True,
     )
 
-    prob = float(risk_model["model"].predict_proba(x_eval)[0, 1])
-
     if glu_val > THR:
-        risk_class = "risk-high"
-        level_str = "CURRENTLY EXCEEDING THRESHOLD"
-        badge_color = STATUS_HIGH
-        desc_str = f"Current glucose is already {glu_val:.0f} mg/dL (above {THR} mg/dL threshold)."
-    elif prob >= HIGH:
-        risk_class = "risk-high"
-        level_str = f"HIGH RISK ({prob:.1%})"
-        badge_color = STATUS_HIGH
-        desc_str = "High statistical likelihood of glucose excursion exceeding 180 mg/dL within the next 2 hours."
-    elif prob >= WATCH:
-        risk_class = "risk-watch"
-        level_str = f"WATCH ({prob:.1%})"
-        badge_color = STATUS_WATCH
-        desc_str = "Moderate spike probability. Close glycemic surveillance advised."
+        risk_panel_html = f"""
+        <div class="risk-panel risk-ood">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <span style="background: #E2E8F0; color: #475569; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 4px; border: 1px solid #CBD5E1;">
+                        Already above 180 mg/dL. Spike prediction does not apply.
+                    </span>
+                </div>
+                <div style="font-size: 12px; color: {TEXT_SECONDARY};">
+                    Evaluation moment: {t0.strftime('%a %d %b %H:%M')} · Interstitial Glucose: {glu_val:.0f} mg/dL
+                </div>
+            </div>
+            <div style="font-size: 13px; color: {TEXT_MAIN}; margin: 8px 0 0 0;">
+                The spike model was trained only on moments where current glucose ≤ 180 mg/dL.
+            </div>
+            <div style="font-size: 11px; color: {TEXT_SECONDARY}; margin-top: 8px;">
+                Trained on CGMacros clinical dataset non-excursion moments.
+            </div>
+        </div>
+        """
+        st.markdown(risk_panel_html, unsafe_allow_html=True)
     else:
-        risk_class = "risk-ok"
-        level_str = f"LOW RISK ({prob:.1%})"
-        badge_color = STATUS_OK
-        desc_str = "Glucose expected to remain safely below the 180 mg/dL threshold over the next 2 hours."
+        prob = float(risk_model["model"].predict_proba(x_eval)[0, 1])
 
-    # Compute SHAP top positive and negative reasons
-    sv = explainer.shap_values(x_eval)
-    sv = sv[1] if isinstance(sv, list) else sv
-    groups = {f: f for f in risk_feats}
-    groups["hour_sin"] = groups["hour_cos"] = "time_of_day"
-    contrib = pd.Series(sv[0], index=risk_feats).groupby(groups).sum().sort_values()
-    contrib = contrib.drop(["age", "bmi", "male"], errors="ignore")
+        if prob >= HIGH:
+            risk_class = "risk-high"
+            badge_color = STATUS_HIGH
+            level_str = f"HIGH ({prob:.0%})"
+            desc_str = f"High statistical likelihood of glucose excursion exceeding 180 mg/dL within the next 2 hours. Alert thresholds: WATCH at 75%, HIGH at 91%."
+        elif prob >= WATCH:
+            risk_class = "risk-watch"
+            badge_color = STATUS_WATCH
+            level_str = f"WATCH ({prob:.0%})"
+            desc_str = f"Moderate spike probability. Close glycemic surveillance advised. Alert thresholds: WATCH at 75%, HIGH at 91%."
+        elif prob >= 0.25:
+            risk_class = "risk-neutral"
+            badge_color = TEXT_SECONDARY
+            level_str = f"Below alert threshold ({prob:.0%})"
+            desc_str = f"Model score: {prob:.0%} chance of exceeding 180 mg/dL in the next 2 hours. Alert thresholds: WATCH at 75%, HIGH at 91%."
+        else:
+            risk_class = "risk-ok"
+            badge_color = STATUS_OK
+            level_str = f"Below alert threshold ({prob:.0%})"
+            desc_str = f"Model score: {prob:.0%} chance of exceeding 180 mg/dL in the next 2 hours. Alert thresholds: WATCH at 75%, HIGH at 91%."
 
-    def describe_feature(f_name: str) -> str:
-        label, fmt = FEATURE_LABELS.get(f_name, (f_name, "{:.1f}"))
-        if f_name == "time_of_day":
-            return f"{label}: {t0.strftime('%H:%M')}"
-        val = eval_row.get(f_name, 0.0)
-        return f"{label}: {fmt.format(val)}"
+        # Compute SHAP top positive and negative reasons
+        sv = explainer.shap_values(x_eval)
+        sv = sv[1] if isinstance(sv, list) else sv
+        groups = {f: f for f in risk_feats}
+        groups["hour_sin"] = groups["hour_cos"] = "time_of_day"
+        contrib = pd.Series(sv[0], index=risk_feats).groupby(groups).sum().sort_values()
+        contrib = contrib.drop(["age", "bmi", "male"], errors="ignore")
 
-    top_pos = contrib[contrib > 0].tail(2)[::-1]
-    top_neg = contrib[contrib < 0].head(2)
+        def describe_feature(f_name: str) -> str:
+            label, fmt = FEATURE_LABELS.get(f_name, (f_name, "{:.1f}"))
+            if f_name == "time_of_day":
+                return f"{label}: {t0.strftime('%H:%M')}"
+            val = eval_row.get(f_name, 0.0)
+            if fmt:
+                try:
+                    return f"{label}: {fmt.format(val)}"
+                except Exception:
+                    return f"{label}: {val}"
+            return f"{label}: {val}"
 
-    pos_reasons_html = "".join([f"<div>• <strong>Raises risk:</strong> {describe_feature(f)}</div>" for f in top_pos.index])
-    neg_reasons_html = "".join([f"<div>• <strong>Lowers risk:</strong> {describe_feature(f)}</div>" for f in top_neg.index])
+        top_pos = contrib[contrib > 0].tail(2)[::-1]
+        top_neg = contrib[contrib < 0].head(2)
 
-    risk_panel_html = f"""
-    <div class="risk-panel {risk_class}">
-        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
-            <div style="font-size: 16px; font-weight: 700; color: {badge_color};">
-                {level_str}
+        pos_reasons_html = "".join([f"<div>• <strong>Raises risk:</strong> {describe_feature(f)}</div>" for f in top_pos.index])
+        neg_reasons_html = "".join([f"<div>• <strong>Lowers risk:</strong> {describe_feature(f)}</div>" for f in top_neg.index])
+
+        risk_panel_html = f"""
+        <div class="risk-panel {risk_class}">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
+                <div style="font-size: 16px; font-weight: 700; color: {badge_color};">
+                    {level_str}
+                </div>
+                <div style="font-size: 12px; color: {TEXT_SECONDARY};">
+                    Evaluation moment: {t0.strftime('%a %d %b %H:%M')} · Interstitial Glucose: {glu_val:.0f} mg/dL
+                </div>
             </div>
-            <div style="font-size: 12px; color: {TEXT_SECONDARY};">
-                Evaluation moment: {t0.strftime('%a %d %b %H:%M')} · Interstitial Glucose: {glu_val:.0f} mg/dL
+            <div style="font-size: 13px; color: {TEXT_MAIN}; margin: 6px 0 10px 0;">
+                {desc_str}
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; color: {TEXT_MAIN};
+                        background-color: {BG_APP}; border: 1px solid {BORDER}; border-radius: 6px; padding: 10px 14px;">
+                <div>{pos_reasons_html if pos_reasons_html else '<div>• No acute risk-raising triggers</div>'}</div>
+                <div>{neg_reasons_html if neg_reasons_html else '<div>• No protective mitigators active</div>'}</div>
+            </div>
+            <div style="font-size: 11px; color: {TEXT_SECONDARY}; margin-top: 8px;">
+                Spike probability represents the calibrated likelihood of exceeding 180 mg/dL in the subsequent 120-minute window.<br>
+                Model attributions reflect patterns in the real CGMacros cohort and are not causal.
             </div>
         </div>
-        <div style="font-size: 13px; color: {TEXT_MAIN}; margin: 6px 0 10px 0;">
-            {desc_str}
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; color: {TEXT_MAIN};
-                    background-color: {BG_APP}; border: 1px solid {BORDER}; border-radius: 6px; padding: 10px 14px;">
-            <div>{pos_reasons_html if pos_reasons_html else '<div>• No acute risk-raising triggers</div>'}</div>
-            <div>{neg_reasons_html if neg_reasons_html else '<div>• No protective mitigators active</div>'}</div>
-        </div>
-        <div style="font-size: 11px; color: {TEXT_SECONDARY}; margin-top: 8px;">
-            Spike probability represents the calibrated likelihood of exceeding 180 mg/dL in the subsequent 120-minute window.
-            Trained on CGMacros clinical dataset features.
-        </div>
-    </div>
-    """
-    st.markdown(risk_panel_html, unsafe_allow_html=True)
+        """
+        st.markdown(risk_panel_html, unsafe_allow_html=True)
 
     # ─── 4. 24-Hour Glucose Chart with Prediction Window ────────────────────
     st.markdown(
@@ -345,6 +354,10 @@ def render_patient_view() -> None:
         fig_sl.autofmt_xdate()
         st.pyplot(fig_sl)
         plt.close(fig_sl)
+        st.caption(
+            "Simplified simulated sleep stages. The real CGMacros data has no sleep-stage recordings, "
+            "so this is not validated against real data."
+        )
 
     # Right: Steps & Physical Activity
     with grid_c2:
