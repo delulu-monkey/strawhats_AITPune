@@ -108,7 +108,9 @@ def render_patients_list() -> None:
                     f"font-size:11px;padding:1px 6px;border-radius:4px;border:1px solid {BADGE_REAL_BORDER};'>CUSTOM</span>"
                 )
                 st.markdown(
-                    f"**{pt['name']}** {badge_html('SIMULATED')} {type_badge}",
+                    f"<div style='font-weight:600; color:{PRIMARY_DARK}; margin-bottom:2px;'>"
+                    f"{pt['name']} {badge_html('SIMULATED')} {type_badge}"
+                    f"</div>",
                     unsafe_allow_html=True,
                 )
                 if pt.get("description"):
@@ -127,13 +129,13 @@ def render_patients_list() -> None:
                 st.caption(seed_str)
 
             with c4:
-                btn_cols = st.columns([2, 1, 1])
-                if btn_cols[0].button("Inspect", key=f"inspect_{pt['id']}"):
-                    st.session_state["selected_patient_id"] = pt["id"]
-                    st.session_state["active_nav"] = "Patient view"
-                    st.rerun()
-
                 if not is_preset:
+                    btn_cols = st.columns([2, 1, 1])
+                    if btn_cols[0].button("Inspect", key=f"inspect_{pt['id']}"):
+                        st.session_state["selected_patient_id"] = pt["id"]
+                        st.session_state["active_nav"] = "Patient view"
+                        st.rerun()
+
                     if btn_cols[1].button("Edit", key=f"edit_{pt['id']}", help="Edit patient"):
                         st.session_state["editing_patient_id"] = pt["id"]
                         st.rerun()
@@ -148,8 +150,13 @@ def render_patients_list() -> None:
                         except Exception as e:
                             st.error(f"Error: {e}")
                 else:
+                    btn_cols = st.columns([1.5, 1.5])
+                    if btn_cols[0].button("Inspect", key=f"inspect_{pt['id']}"):
+                        st.session_state["selected_patient_id"] = pt["id"]
+                        st.session_state["active_nav"] = "Patient view"
+                        st.rerun()
                     btn_cols[1].markdown(
-                        f"<span style='color:{TEXT_SECONDARY};font-size:12px;'>Protected</span>",
+                        f"<div style='color:{TEXT_SECONDARY}; font-size:12px; white-space:nowrap; padding-top:6px;'>Protected</div>",
                         unsafe_allow_html=True,
                     )
 

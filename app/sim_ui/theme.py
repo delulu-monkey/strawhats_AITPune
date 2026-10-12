@@ -49,10 +49,10 @@ CHART_THRESHOLD = STATUS_HIGH      # red threshold line (180 mg/dL)
 CHART_HYPO = STATUS_WATCH          # amber hypo line (70 mg/dL)
 CHART_MEAL = "#C05621"             # burnt orange for meal markers
 CHART_RANGE_FILL = STATUS_OK       # green target range band
-CHART_SLEEP = PRIMARY_DARK
-CHART_STEPS = STATUS_OK
-CHART_HR = STATUS_HIGH
-CHART_HRV = PRIMARY
+CHART_SLEEP = PRIMARY              # blue for hypnogram
+CHART_STEPS = PRIMARY              # blue for steps bars
+CHART_HR = PRIMARY                 # blue for heart rate
+CHART_HRV = TEXT_SECONDARY         # grey-blue for HRV dashed (#5B6B82)
 CHART_SCENARIO = PRIMARY           # blue for counterfactual scenario
 CHART_GRID = "#E3E9F2"
 CHART_BG = BG_PAGE
@@ -321,7 +321,8 @@ def render_patient_body_overview(
     if is_real and real_row is not None:
         twin_prov = {
             "sleep": "NOT AVAILABLE",
-            "hr": "NOT AVAILABLE",
+            "heart_rate": "REAL",
+            "hrv": "NOT AVAILABLE",
             "glucose": "REAL",
             "hba1c": "REAL",
             "steps": "NOT AVAILABLE",
@@ -329,7 +330,8 @@ def render_patient_body_overview(
     else:
         twin_prov = {
             "sleep": prov.get("typical_sleep_hours", "SIMULATED"),
-            "hr": prov.get("heart_rate", "SIMULATED"),
+            "heart_rate": prov.get("heart_rate", "SIMULATED"),
+            "hrv": prov.get("hrv", "SIMULATED"),
             "glucose": prov.get("fasting_glucose", "SIMULATED"),
             "hba1c": prov.get("hba1c", "SIMULATED"),
             "steps": prov.get("steps_per_day", "SIMULATED"),
@@ -341,17 +343,17 @@ def render_patient_body_overview(
     overview_html = (
         f'<div class="sim-glass-card" style="margin-bottom: 20px;">'
         f'<div style="display:flex; justify-content:space-between; align-items:center; '
-        f'border-bottom:1px solid {BORDER}; padding-bottom:8px; margin-bottom:16px;">'
+        f'border-bottom:1px solid {BORDER}; padding-bottom:8px; margin-bottom:14px;">'
         f'<div>'
         f'<span style="font-size:14px; font-weight:600; color:{PRIMARY_DARK};">Biometric Summary Row</span>'
         f'<span style="font-size:12px; color:{TEXT_SECONDARY}; margin-left:10px;">Six core modalities with trend trajectory and provenance</span>'
         f'</div>'
         f'</div>'
-        f'<div style="display:flex; gap:20px; align-items:center; justify-content:space-between; flex-wrap:wrap;">'
-        f'<div style="flex:1 1 560px; display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; min-width:320px;">'
+        f'<div style="display:flex; gap:20px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;">'
+        f'<div class="biometric-cards-grid">'
         f'{cards_html}'
         f'</div>'
-        f'<div style="flex:0 0 300px; max-width:310px; width:100%; display:flex; align-items:center; justify-content:center; padding:4px; margin:0 auto;">'
+        f'<div style="flex:0 0 310px; max-width:320px; width:100%; display:flex; align-items:flex-start; justify-content:center; padding:0; margin:0 auto;">'
         f'{svg_body}'
         f'</div>'
         f'</div>'

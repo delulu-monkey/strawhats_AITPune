@@ -204,7 +204,7 @@ def render_real_patients() -> None:
                 ax.plot([], [], color=CHART_MEAL, label="Real Meal Logged")
 
             ax.set_ylabel("Glucose (mg/dL)", fontsize=9)
-            ax.legend(loc="upper right", fontsize=8)
+            ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=4, fontsize=8, frameon=False)
             fig.autofmt_xdate()
             st.pyplot(fig)
             plt.close(fig)

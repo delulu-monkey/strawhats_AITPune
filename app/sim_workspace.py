@@ -84,7 +84,7 @@ def main() -> None:
     st.sidebar.markdown(
         f"""
         <div style="padding: 4px 0 12px 0; border-bottom: 1px solid {BORDER}; margin-bottom: 12px;">
-            <div style="font-size: 18px; font-weight: 700; color: {PRIMARY_DARK}; letter-spacing: -0.01em;">
+            <div style="font-size: 18px; font-weight: 700; color: {PRIMARY_DARK}; letter-spacing: -0.01em; white-space: nowrap;">
                 Digital Twin Workspace
             </div>
             <div style="font-size: 11px; color: {TEXT_SECONDARY}; font-weight: 500; margin-top: 2px;">
@@ -195,7 +195,11 @@ def main() -> None:
             for p in all_patients:
                 if p["id"] == pid:
                     tag = "PRESET" if p["type"] == "preset" else "CUSTOM"
-                    return f"{p['name']} ({tag})"
+                    name = p["name"]
+                    full = f"{name} ({tag})"
+                    if len(full) > 34:
+                        return f"{name[:24]}... ({tag})"
+                    return full
             return pid
 
         cur_idx = patient_ids.index(default_id) if default_id in patient_ids else 0

@@ -31,7 +31,7 @@ from src.sim.featurize import featurize_patient
 from app.sim_ui.common import load_models, load_indian_meals
 from app.sim_ui.badges import badge_html
 from app.sim_ui.theme import (
-    PRIMARY, PRIMARY_DARK, CHART_LINE_MAIN, CHART_LINE_BASELINE,
+    PRIMARY, PRIMARY_DARK, TEXT_MAIN, CHART_LINE_MAIN, CHART_LINE_BASELINE,
     CHART_THRESHOLD, CHART_HYPO, CHART_RANGE_FILL, CHART_MEAL, CHART_STEPS,
     STATUS_OK, STATUS_WATCH, STATUS_HIGH,
 )
@@ -80,9 +80,13 @@ def render_scenario_sandbox() -> None:
     start_moment = dt.combine(eval_date, eval_time)
 
     st.markdown(
-        f"**Patient Baseline:** {patient.name} · Age {patient.age} · HbA1c {patient.hba1c:.1f}% · "
-        f"BMI {patient.bmi:.1f} · Usual Sleep: {patient.lifestyle.typical_sleep_hours:.1f}h · "
-        f"Habitual Steps: {patient.lifestyle.steps_per_day:,} · Seed: {patient.seed} {badge_html('SIMULATED')}",
+        f"""
+        <div style="font-size: 13.5px; color: {TEXT_MAIN}; margin: 4px 0 8px 0;">
+            <strong>Patient Baseline:</strong> {patient.name} · Age {patient.age} · HbA1c {patient.hba1c:.1f}% · 
+            BMI {patient.bmi:.1f} · Usual Sleep: {patient.lifestyle.typical_sleep_hours:.1f}h · 
+            Habitual Steps: {patient.lifestyle.steps_per_day:,} · Seed: {patient.seed} {badge_html('SIMULATED')}
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
@@ -176,7 +180,14 @@ def render_scenario_sandbox() -> None:
             baseline_df, scenario_df = simulate_scenario(patient, start_moment, scenario_params)
             metrics = compare_metrics(baseline_df, scenario_df)
 
-        st.markdown(f"### Simulation Results: Baseline vs Scenario {badge_html('SIMULATED')}")
+        st.markdown(
+            f"""
+            <div style="font-size: 16px; font-weight: 700; color: {PRIMARY_DARK}; margin: 12px 0 8px 0;">
+                Simulation Results: Baseline vs Scenario {badge_html('SIMULATED')}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         # Metrics cards
         m1, m2, m3, m4 = st.columns(4)
@@ -242,7 +253,7 @@ def render_scenario_sandbox() -> None:
             ax_cmp.axvspan(w_t, w_t + timedelta(minutes=w_dur), color=CHART_STEPS, alpha=0.12, label="Added Walk")
 
         ax_cmp.set_ylabel("Glucose (mg/dL)", fontsize=9)
-        ax_cmp.legend(loc="upper right", fontsize=8)
+        ax_cmp.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=4, fontsize=8, frameon=False)
         fig_cmp.autofmt_xdate()
         st.pyplot(fig_cmp)
         plt.close(fig_cmp)

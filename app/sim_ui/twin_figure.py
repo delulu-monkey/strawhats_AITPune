@@ -129,16 +129,17 @@ def get_patient_and_twin_svg(prov_map: Optional[Dict[str, str]] = None) -> str:
     """
     prov = prov_map or {}
 
-    # Coordinate anchors
-    patient_cx = 64.0
-    twin_cx = 186.0
+    # Coordinate anchors: Patient centered at 56, Twin centered at 176
+    patient_cx = 56.0
+    twin_cx = 176.0
 
     patient_path = _make_body_path(patient_cx)
     twin_path = _make_body_path(twin_cx)
 
     # Styles for functional markers
     s_sleep = _get_marker_style(prov.get("sleep", prov.get("typical_sleep_hours", "SIMULATED")))
-    s_hr = _get_marker_style(prov.get("hr", prov.get("heart_rate", "SIMULATED")))
+    s_hr = _get_marker_style(prov.get("heart_rate", prov.get("hr", "SIMULATED")))
+    s_hrv = _get_marker_style(prov.get("hrv", "SIMULATED"))
     s_glu = _get_marker_style(prov.get("glucose", prov.get("fasting_glucose", "SIMULATED")))
     s_a1c = _get_marker_style(prov.get("hba1c", "SIMULATED"))
     s_steps = _get_marker_style(prov.get("steps", prov.get("steps_per_day", "SIMULATED")))
@@ -147,7 +148,7 @@ def get_patient_and_twin_svg(prov_map: Optional[Dict[str, str]] = None) -> str:
     scan_lines = []
     for y in range(48, 308, 12):
         scan_lines.append(
-            f'<line x1="150" y1="{y}" x2="222" y2="{y}" stroke="{PRIMARY}" stroke-width="0.8" stroke-opacity="0.11" />'
+            f'<line x1="140" y1="{y}" x2="212" y2="{y}" stroke="{PRIMARY}" stroke-width="0.8" stroke-opacity="0.11" />'
         )
     scan_lines_svg = "\n        ".join(scan_lines)
 
@@ -155,17 +156,17 @@ def get_patient_and_twin_svg(prov_map: Optional[Dict[str, str]] = None) -> str:
     circuit_traces = f"""
         <!-- Circuit-style traces -->
         <g stroke="{PRIMARY}" stroke-width="0.8" stroke-opacity="0.25" fill="none">
-            <path d="M 212 98 L 228 98 L 235 90 L 248 90" />
-            <circle cx="248" cy="90" r="1.5" fill="{PRIMARY}" fill-opacity="0.35" stroke="none" />
+            <path d="M 202 98 L 218 98 L 225 90 L 238 90" />
+            <circle cx="238" cy="90" r="1.5" fill="{PRIMARY}" fill-opacity="0.35" stroke="none" />
 
-            <path d="M 210 136 L 224 136 L 232 144 L 250 144" />
-            <circle cx="250" cy="144" r="1.5" fill="{PRIMARY}" fill-opacity="0.35" stroke="none" />
+            <path d="M 200 136 L 214 136 L 222 144 L 240 144" />
+            <circle cx="240" cy="144" r="1.5" fill="{PRIMARY}" fill-opacity="0.35" stroke="none" />
 
-            <path d="M 205 184 L 220 184 L 228 194 L 246 194" />
-            <circle cx="246" cy="194" r="1.5" fill="{PRIMARY}" fill-opacity="0.35" stroke="none" />
+            <path d="M 195 184 L 210 184 L 218 194 L 236 194" />
+            <circle cx="236" cy="194" r="1.5" fill="{PRIMARY}" fill-opacity="0.35" stroke="none" />
 
-            <path d="M 202 228 L 216 228 L 222 220 L 242 220" />
-            <circle cx="242" cy="220" r="1.5" fill="{PRIMARY}" fill-opacity="0.35" stroke="none" />
+            <path d="M 192 228 L 206 228 L 212 220 L 232 220" />
+            <circle cx="232" cy="220" r="1.5" fill="{PRIMARY}" fill-opacity="0.35" stroke="none" />
         </g>
     """
 
@@ -174,23 +175,23 @@ def get_patient_and_twin_svg(prov_map: Optional[Dict[str, str]] = None) -> str:
         <!-- Anatomical node dots -->
         <g fill="{PRIMARY}" opacity="0.65">
             <!-- Shoulders -->
-            <circle cx="164" cy="98" r="2" />
-            <circle cx="208" cy="98" r="2" />
+            <circle cx="154" cy="98" r="2" />
+            <circle cx="198" cy="98" r="2" />
             <!-- Elbows -->
-            <circle cx="160" cy="154" r="1.8" />
-            <circle cx="212" cy="154" r="1.8" />
+            <circle cx="150" cy="154" r="1.8" />
+            <circle cx="202" cy="154" r="1.8" />
             <!-- Wrists -->
-            <circle cx="161" cy="204" r="1.5" />
-            <circle cx="211" cy="204" r="1.5" />
+            <circle cx="151" cy="204" r="1.5" />
+            <circle cx="201" cy="204" r="1.5" />
             <!-- Hips -->
-            <circle cx="174" cy="186" r="2" />
-            <circle cx="198" cy="186" r="2" />
+            <circle cx="164" cy="186" r="2" />
+            <circle cx="188" cy="186" r="2" />
             <!-- Knees -->
-            <circle cx="174" cy="244" r="2" />
-            <circle cx="198" cy="244" r="2" />
+            <circle cx="164" cy="244" r="2" />
+            <circle cx="188" cy="244" r="2" />
             <!-- Ankles -->
-            <circle cx="176" cy="294" r="1.8" />
-            <circle cx="196" cy="294" r="1.8" />
+            <circle cx="166" cy="294" r="1.8" />
+            <circle cx="186" cy="294" r="1.8" />
         </g>
     """
 
@@ -204,18 +205,20 @@ def get_patient_and_twin_svg(prov_map: Optional[Dict[str, str]] = None) -> str:
         </g>
         """
 
-    # Marker 1: Head = Sleep (leader right to x=232)
-    m_sleep = render_marker(186, 58, 230, 58, 234, 61.5, "Sleep", s_sleep)
-    # Marker 2: Chest = Heart rate and HRV (leader right to x=232)
-    m_hr = render_marker(183, 116, 230, 116, 234, 119.5, "HR / HRV", s_hr)
-    # Marker 3: Abdomen = Glucose (leader right to x=232)
-    m_glu = render_marker(186, 156, 230, 156, 234, 159.5, "Glucose", s_glu)
-    # Marker 4: Near abdomen = HbA1c (lab) (leader left into inter-figure space or right)
-    m_a1c = render_marker(178, 172, 142, 172, 138, 175.5, "HbA1c (lab)", s_a1c, anchor="end")
-    # Marker 5: Legs = Steps (leader right to x=232)
-    m_steps = render_marker(186, 264, 230, 264, 234, 267.5, "Steps", s_steps)
+    # Marker 1: Head = Sleep (leader right to x=224, label at x=228)
+    m_sleep = render_marker(176, 52, 224, 52, 228, 55.5, "Sleep", s_sleep)
+    # Marker 2: Chest (heart) = Heart rate
+    m_hr = render_marker(172, 104, 224, 104, 228, 107.5, "Heart rate", s_hr)
+    # Marker 3: Mid-chest = HRV
+    m_hrv = render_marker(180, 126, 224, 126, 228, 129.5, "HRV", s_hrv)
+    # Marker 4: Abdomen = Glucose
+    m_glu = render_marker(176, 152, 224, 152, 228, 155.5, "Glucose", s_glu)
+    # Marker 5: Lower abdomen = HbA1c (lab)
+    m_a1c = render_marker(176, 178, 224, 178, 228, 181.5, "HbA1c (lab)", s_a1c)
+    # Marker 6: Legs = Steps
+    m_steps = render_marker(176, 264, 224, 264, 228, 267.5, "Steps", s_steps)
 
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" width="100%" height="auto" style="max-width: 300px; display: block; margin: 0 auto; user-select: none;">
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 420" width="100%" height="auto" style="max-width: 310px; display: block; margin: 0 auto; user-select: none;">
     <defs>
         <!-- Soft light-blue glow filter behind twin (8-10% opacity) -->
         <filter id="twin-glow" x="-20%" y="-20%" width="140%" height="140%">
@@ -251,23 +254,24 @@ def get_patient_and_twin_svg(prov_map: Optional[Dict[str, str]] = None) -> str:
     {circuit_traces}
     {node_dots}
 
-    <!-- Interaction bridge between Patient and Digital Twin -->
-    <line x1="96" y1="126" x2="152" y2="126" stroke="{PRIMARY}" stroke-width="1" stroke-dasharray="2 3" marker-start="url(#arrow-left)" marker-end="url(#arrow-right)" />
-    <text x="124" y="119" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="8.5" font-weight="600" fill="{TEXT_SECONDARY}">Simulated twin</text>
+    <!-- Interaction bridge between Patient and Digital Twin in wide head gap (no figure overlap) -->
+    <line x1="82" y1="62" x2="150" y2="62" stroke="{PRIMARY}" stroke-width="1" stroke-dasharray="2 3" marker-start="url(#arrow-left)" marker-end="url(#arrow-right)" />
+    <text x="116" y="55" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="8.5" font-weight="600" fill="{TEXT_SECONDARY}">Simulated twin</text>
 
     <!-- Figure labels under silhouettes -->
-    <text x="64" y="332" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600" fill="{TEXT_SECONDARY}">Patient</text>
-    <text x="186" y="332" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600" fill="{PRIMARY}">Digital twin</text>
+    <text x="56" y="336" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600" fill="{TEXT_SECONDARY}">Patient</text>
+    <text x="176" y="336" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600" fill="{PRIMARY}">Digital twin</text>
 
     <!-- Functional metric markers with leader lines -->
     {m_sleep}
     {m_hr}
+    {m_hrv}
     {m_glu}
     {m_a1c}
     {m_steps}
 
     <!-- Provenance Legend below illustration -->
-    <g transform="translate(48, 382)">
+    <g transform="translate(48, 375)">
         <circle cx="6" cy="6" r="3.5" fill="{PRIMARY}" stroke="{PRIMARY}" stroke-width="1.2" />
         <text x="16" y="9.5" font-family="Inter, system-ui, sans-serif" font-size="10.5" font-weight="500" fill="{TEXT_SECONDARY}">data present</text>
         <circle cx="118" cy="6" r="3.5" fill="#FFFFFF" stroke="{UNAVAILABLE_GREY}" stroke-width="1.2" stroke-dasharray="2 1.5" />

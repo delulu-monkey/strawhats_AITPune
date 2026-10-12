@@ -69,7 +69,7 @@ FEATURE_LABELS = {
     "fiber_3h": ("Fiber eaten, last 3 hours", "{:.0f} g"),
     "min_since_meal": ("Time since last meal", "{:.0f} min"),
     "time_of_day": ("Circadian phase / time", None),
-    "fasting_glu": ("Fasting glucose baseline", "{:.0f} mg/dL"),
+    "fasting_glu": ("Simulated overnight sensor baseline", "{:.0f} mg/dL"),
     "hba1c": ("HbA1c baseline", "{:.1f}%"),
 }
 
@@ -129,7 +129,7 @@ def render_patient_view() -> None:
     )
 
     # Date and Time-of-Day Slider Row
-    slider_c1, slider_c2 = st.columns([1, 3])
+    slider_c1, slider_c2 = st.columns([1.35, 2.65])
     with slider_c1:
         chosen_date = st.selectbox(
             "Evaluation Date",
@@ -302,7 +302,7 @@ def render_patient_view() -> None:
         )
 
     ax_cgm.set_ylabel("Glucose (mg/dL)", fontsize=9)
-    ax_cgm.legend(loc="upper right", fontsize=8, ncol=3)
+    ax_cgm.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=4, fontsize=8, frameon=False)
     ax_cgm.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     fig_cgm.autofmt_xdate()
     st.pyplot(fig_cgm)
@@ -325,7 +325,14 @@ def render_patient_view() -> None:
 
     # Left: Sleep Stage Hypnogram
     with grid_c1:
-        st.markdown(f"**Sleep Architecture (Hypnogram)** {badge_html('SIMULATED')}", unsafe_allow_html=True)
+        st.markdown(
+            f"""
+            <div style="font-size: 13.5px; font-weight: 600; color: {PRIMARY_DARK}; margin-bottom: 6px;">
+                Sleep Architecture (Hypnogram) {badge_html('SIMULATED')}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         stage_map = {"awake": 3, "rem": 2, "light": 1, "deep": 0}
         day_cgm["stage_num"] = day_cgm["sleep_stage"].map(stage_map)
 
@@ -341,7 +348,14 @@ def render_patient_view() -> None:
 
     # Right: Steps & Physical Activity
     with grid_c2:
-        st.markdown(f"**Physical Activity & Steps** {badge_html('SIMULATED')}", unsafe_allow_html=True)
+        st.markdown(
+            f"""
+            <div style="font-size: 13.5px; font-weight: 600; color: {PRIMARY_DARK}; margin-bottom: 6px;">
+                Physical Activity & Steps {badge_html('SIMULATED')}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         fig_st, ax_st = plt.subplots(figsize=(6, 2.5))
         ax_st.bar(day_cgm["time"], day_cgm["steps"], width=0.003, color=CHART_STEPS, alpha=0.8)
         ax_st.set_ylabel("Steps / 5m", fontsize=8)
@@ -351,6 +365,14 @@ def render_patient_view() -> None:
         plt.close(fig_st)
 
     # Heart Rate & HRV Telemetry
+    st.markdown(
+        f"""
+        <div style="font-size: 13.5px; font-weight: 600; color: {PRIMARY_DARK}; margin: 10px 0 6px 0;">
+            Heart Rate & HRV Continuous Telemetry {badge_html('SIMULATED')}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     fig_hr, ax_hr = plt.subplots(figsize=(11, 2.3))
     ax_hr.plot(day_cgm["time"], day_cgm["hr"], color=CHART_HR, lw=1.3, label="Heart Rate (bpm)")
     ax_hr.plot(day_cgm["time"], day_cgm["hrv_rmssd"], color=CHART_HRV, lw=1.3, ls="--", label="HRV RMSSD (ms)")
@@ -400,7 +422,7 @@ def render_patient_view() -> None:
         g1, g2, g3, g4 = st.columns(4)
         g1.metric("HbA1c", f"{patient.hba1c:.1f}%")
         g2.metric("Lab fasting glucose (venous, entered)", f"{patient.displayed_fasting_glucose:.0f} mg/dL")
-        g3.metric("Simulated overnight sensor baseline (Libre-style)", f"{patient.effective_fasting_glucose:.0f} mg/dL")
+        g3.metric("Simulated overnight sensor baseline", f"{patient.effective_fasting_glucose:.0f} mg/dL")
         g4.metric("Fasting Insulin", f"{patient.insulin:.1f} μU/mL")
 
         st.divider()
@@ -413,7 +435,7 @@ def render_patient_view() -> None:
             {"Parameter": "Body Mass Index (BMI)", "Value": f"{patient.bmi:.1f}", "Unit": "kg/m²", "Provenance": "SIMULATED", "Notes": f"Target: 18.5–24.9"},
             {"Parameter": "HbA1c", "Value": f"{patient.hba1c:.1f}", "Unit": "%", "Provenance": "SIMULATED", "Notes": "Glycated hemoglobin (PDL standard)"},
             {"Parameter": "Lab fasting glucose (venous, entered)", "Value": f"{patient.displayed_fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Entered laboratory fasting glucose (or derived from HbA1c)"},
-            {"Parameter": "Simulated overnight sensor baseline (Libre-style)", "Value": f"{patient.effective_fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Simulator overnight sensor baseline (Libre-style, modeled with IR & medications)"},
+            {"Parameter": "Simulated overnight sensor baseline", "Value": f"{patient.effective_fasting_glucose:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Simulator overnight sensor baseline (Libre-style, modeled with IR & medications)"},
             {"Parameter": "Fasting Insulin", "Value": f"{patient.insulin:.1f}", "Unit": "μU/mL", "Provenance": "SIMULATED", "Notes": "Endogenous insulin concentration"},
             {"Parameter": "Modelled IR Index", "Value": f"{patient.insulin_resistance:.2f}", "Unit": "ratio", "Provenance": "SIMULATED", "Notes": "1.0 = healthy baseline sensitivity"},
             {"Parameter": "Triglycerides", "Value": f"{patient.triglycerides:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Lipid profile (Normal < 150)"},
@@ -421,7 +443,7 @@ def render_patient_view() -> None:
             {"Parameter": "HDL Cholesterol", "Value": f"{patient.hdl:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "High-density lipoprotein (> 40 M, > 50 F)"},
             {"Parameter": "LDL Cholesterol", "Value": f"{patient.ldl:.0f}", "Unit": "mg/dL", "Provenance": "SIMULATED", "Notes": "Low-density lipoprotein (Optimal < 100)"},
         ]
-        st.dataframe(pd.DataFrame(labs_data), use_container_width=True, hide_index=True)
+        st.table(pd.DataFrame(labs_data))
 
     with t_meds:
         col_d, col_m = st.columns(2)
