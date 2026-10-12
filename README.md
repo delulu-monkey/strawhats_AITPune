@@ -1,161 +1,358 @@
 # Type 2 Diabetes Digital Twin: 2-Hour Glucose Spike Warning
 
-**Team:** strawhats | **College / incubator:** Army Institute of Technology, Pune
-**Team leader:** Adarsh Singh Bhadauriya | **Members:** Prabhat Ranjan, Pawan Singh Kunwar, Sumit Kumar
-**Video (unlisted YouTube):** LINK | **Slides:** `docs/presentation.pdf` | **Architecture:** `docs/architecture.pdf`
+A research prototype that combines clinical-record features, continuous glucose monitoring (CGM), wearable signals, and meal information to estimate the risk of a new glucose spike within the next two hours.
 
-## Problem and use case
-Type 2 diabetes is widespread in India, and glucose spikes after meals are invisible until a
-check-up. This proof of concept builds a "digital twin" of a Type 2 diabetes patient that fuses
-two data streams (static health record and wearable time series) to warn a doctor when
-glucose is likely to exceed 180 mg/dL in the next 2 hours, and lets the doctor test what-if
-meals using common Indian dishes.
+**Built by Team Strawhats · Army Institute of Technology (AIT), Pune**
 
-## What it does
-1. **Spike warning:** predicts whether glucose will exceed 180 mg/dL within 2 hours
-   (Low / Watch / High, with plain-language reasons).
-2. **Meal what-if:** choose Indian dishes and portions to see the predicted peak glucose
-   with a typical-error range.
-3. **Doctor dashboard** (Streamlit) combining the patient record, glucose timeline,
-   risk level and what-if tool.
+[Project repository](https://github.com/delulu-monkey/strawhats_AITPune) · [Presentation](docs/presentation.pdf) · [Architecture](docs/architecture.pdf)
 
-## Data (all public or synthetic; no private patient data)
-- **CGMacros** (PhysioNet), 45 participants: 15 healthy, 16 prediabetes, 14 Type 2 diabetes
-  (group by HbA1c). Continuous glucose (Libre), heart rate, activity, meals with macros,
-  and a clinical profile (our EHR stream). License: CC BY-NC-SA 4.0. Not included in this repo;
-  download from PhysioNet (see "How to run").
-- **Indian Nutrient Databank (INDB)**, Vijayakumar et al., Current Developments in Nutrition, 2024:
-  recipe-level nutrition for Indian dishes. License: LICENSE FROM THE PAPER. 17 dishes selected;
-  deep-fried and rich dishes excluded because of implausible fat values.
-- **Synthetic generator** (`src/generate_data.py`): simulated patients, used for early
-  prototyping only. No reported results use synthetic data.
+> **Important:** This is an experimental proof of concept for education and research. It is not a medical device and must not be used to diagnose, treat, or make clinical decisions.
 
-## Method
-- Data fusion: 1-minute data resampled to 5 minutes. Dynamic features (current glucose,
-  recent change, heart rate, activity, food eaten in the last 3 hours, time of day)
-  plus static features (age, sex, BMI, HbA1c, fasting glucose).
-- Target: glucose above 180 mg/dL at any point in the next 2 hours, using only moments
-  where glucose is currently at or below 180 (new spikes).
-- Models: logistic regression and XGBoost (risk), random forest (meal response).
-- Validation: 5-fold split by person, so every test person is unseen in training.
-  Confidence intervals come from resampling people, not rows.
-- Per-meal values were capped (carbs 250 g, protein 150 g, fat 150 g, fiber 60 g) because
-  the raw data contains impossible entries.
+## Table of contents
 
-## Results (Type 2 diabetes participants, unseen people)
-| Model | AUC (95% interval) | PR-AUC |
-|---|---|---|
-| Logistic regression | 0.800 (0.766-0.839) | 0.484 |
-| XGBoost | 0.787 (0.744-0.830) | 0.465 |
-| Simple rule "high and rising" | 0.733 (0.701-0.756) | n/a |
+- [Overview](#overview)
+- [Why this project](#why-this-project)
+- [Features](#features)
+- [How it works](#how-it-works)
+- [Data sources](#data-sources)
+- [Machine-learning approach](#machine-learning-approach)
+- [Evaluation](#evaluation)
+- [Technology stack](#technology-stack)
+- [Repository structure](#repository-structure)
+- [Getting started](#getting-started)
+- [Running the application](#running-the-application)
+- [Reproducing the pipeline](#reproducing-the-pipeline)
+- [Limitations](#limitations)
+- [Team](#team)
+- [References and data licensing](#references-and-data-licensing)
+- [License](#license)
 
-Spike base rate in this group: 15.9%.
-- The models beat the simple rule (difference +0.031 to +0.111 for logistic).
-- Logistic and XGBoost are statistically tied. XGBoost is used in the dashboard for explanations.
-- Adding heart rate and activity: AUC 0.770 to 0.787, but the difference interval
-  (-0.004 to +0.035) includes zero, so the benefit is not statistically clear.
-- Per-person AUC (people with both outcomes): median 0.82, lowest 0.66 among Type 2 diabetes participants.
-- Dashboard alert levels (XGBoost): WATCH catches about 52% of spikes with about 40% of
-  alerts correct; HIGH catches about 27% with about 60% correct.
-- Meal model (unseen people, Type 2 diabetes): error about 31 mg/dL vs 39 for predicting the average;
-  carbs raise and fiber lowers the predicted peak.
+## Overview
 
-## Limitations (please read)
-- Only 14 Type 2 diabetes participants with about 10 days each. This is a proof of concept.
-- Mostly US participants and US meals. Not validated on Indian patients; Indian dish
-  nutrition values are database estimates and portions are approximate.
-- Unlogged snacks and drinks are invisible to the model.
-- No step count or sleep data in the real dataset (heart rate and activity are used).
-- Metrics are per 5-minute row. Episode-level evaluation is not done.
-- The activity what-if was tested and removed because the model learned the wrong direction.
-  The meal what-if is an association-based estimate with about 30 mg/dL typical error and
-  little data above about 100 g of carbs.
-- The model predicts high glucose only, not low glucose.
-- The dashboard patients were part of training; reported accuracy comes from held-out tests.
-- Research prototype, not a medical device.
+Glucose levels can rise after meals, and those changes may not be obvious from an occasional measurement. This project explores whether a patient-specific digital-twin-style view—combining a clinical profile with recent glucose, activity, heart-rate, and meal signals—can help surface a possible glucose spike early enough for a clinician to review.
 
-## How to run
+The prototype focuses on two connected workflows:
+
+1. **Two-hour spike warning:** estimates whether glucose may exceed **180 mg/dL** at any point during the following two hours, when the current glucose reading is at or below that threshold.
+2. **Meal what-if exploration:** estimates a possible glucose peak for selected Indian dishes and portions, using nutrition data and a learned meal-response model.
+
+A Streamlit dashboard brings the patient profile, glucose history, risk category, and meal scenario into one interface.
+
+## Why this project
+
+The project investigates how two complementary streams can be combined:
+
+- **Static/historical clinical features:** age, sex, BMI, HbA1c, and fasting glucose.
+- **Dynamic observations:** recent CGM readings and trends, heart rate, activity, and recently logged meal macronutrients.
+
+The intended user is a clinician reviewing a patient's trends—not a patient making treatment decisions from an automated alert.
+
+## Features
+
+### 1. Glucose-spike risk estimation
+
+- Estimates the likelihood of glucose crossing 180 mg/dL in the next two hours.
+- Focuses on **new spikes**: observations where current glucose is at or below 180 mg/dL.
+- Presents Low / Watch / High alert categories with plain-language explanations in the dashboard.
+- Uses an XGBoost classifier for the dashboard risk workflow; logistic regression is also evaluated as a baseline.
+
+### 2. Meal what-if scenarios
+
+- Lets the user choose a dish and portion.
+- Uses recipe-level nutrition information to estimate a possible peak glucose response.
+- Displays an uncertainty/error range to discourage interpreting the estimate as an exact forecast.
+
+These estimates are observational and approximate. They are not a guarantee of an individual's response to a meal.
+
+### 3. Clinician-oriented dashboard
+
+The Streamlit interface is designed to bring together a patient record, glucose timeline, risk estimate, and meal what-if workflow.
+
+## How it works
+
+```text
+CGMacros CGM + heart rate + activity + meal logs
+                         │
+                         ▼
+              Data loading and cleaning
+                         │
+                         ▼
+        Resampling and feature engineering
+            (one row every 5 minutes)
+                         │
+          ┌──────────────┴──────────────┐
+          ▼                             ▼
+ Static clinical profile          Dynamic signals
+ age, sex, BMI, HbA1c,             glucose trends,
+ fasting glucose                   HR, activity, meals
+          └──────────────┬──────────────┘
+                         ▼
+              Two-hour spike target
+        future glucose maximum > 180 mg/dL
+                         │
+                         ▼
+       Logistic Regression / XGBoost training
+             grouped by participant
+                         │
+                         ▼
+          Saved model and feature metadata
+                         │
+                         ▼
+             Streamlit clinician dashboard
+
+Indian Nutrient Databank ──► meal-response model ──► meal what-if estimate
+```
+
+### Feature engineering
+
+The pipeline resamples the source signals to **five-minute intervals**. Features include:
+
+- Current glucose and changes over the previous 15, 30, and 60 minutes.
+- Rolling glucose mean, variability, and recent maximum.
+- Recent heart-rate and activity summaries.
+- Carbohydrate, protein, fat, and fibre logged during the preceding three hours.
+- Time since the last logged meal and time-of-day encodings.
+- Static clinical fields: age, sex, BMI, HbA1c, and fasting glucose.
+
+The prediction target is whether the **maximum glucose in the next 120 minutes** exceeds 180 mg/dL. Rows where glucose is already above 180 mg/dL are excluded from spike training so the model focuses on new threshold crossings rather than identifying an already-high reading.
+
+## Data sources
+
+### CGMacros (PhysioNet)
+
+The glucose-risk pipeline uses the CGMacros dataset, which includes CGM measurements and associated physiological, activity, meal, and clinical-profile information. The project groups participants into healthy, prediabetes, and type 2 diabetes cohorts using HbA1c-based criteria.
+
+The repository documentation reports **45 participants** in total: 15 healthy, 16 with prediabetes, and 14 with type 2 diabetes.
+
+The dataset is not bundled with this repository. Obtain it from [PhysioNet](https://physionet.org/) and follow its access, citation, and license requirements. The project documentation identifies the CGMacros data license as **CC BY-NC-SA 4.0**; verify the dataset's current terms on its official page before using or redistributing it.
+
+### Indian Nutrient Databank (INDB)
+
+The meal scenario workflow uses recipe-level nutrition data from the Indian Nutrient Databank described by Vijayakumar and colleagues (2024). The project selects 17 dishes for its demonstration. Dish nutrition values and serving sizes are estimates, not personalized measurements.
+
+Check the original paper and dataset terms before reusing or redistributing the data.
+
+### Synthetic data
+
+`src/generate_data.py` provides simulated data for early development and prototyping. The reported model metrics in this project's documentation are based on CGMacros participant data, not on the synthetic generator.
+
+**Privacy note:** the project describes its inputs as public or synthetic and states that no private patient data is included in the repository. Do not commit identifiable health information or credentials.
+
+## Machine-learning approach
+
+### Glucose-spike classifier
+
+Two classifiers are evaluated:
+
+- **Logistic Regression:** interpretable baseline with imputation, feature scaling, and class weighting.
+- **XGBoost:** tree-based classifier used by the dashboard and for feature-based explanations.
+
+The code uses five-fold `GroupKFold` validation with participant identity as the grouping variable. This is important because observations from one person should not appear in both the training and test folds.
+
+### Meal-response model
+
+A Random Forest model estimates the glucose peak associated with meal scenarios. It is evaluated on participants held out from training. The estimate is association-based and should not be interpreted as a causal or clinical prediction.
+
+### Data quality handling
+
+The feature pipeline caps implausible meal entries to reduce the influence of obvious source-data errors: carbohydrates at 250 g, protein at 150 g, fat at 150 g, and fibre at 60 g per meal record. This is a pragmatic preprocessing step, not a substitute for validating the original records.
+
+## Evaluation
+
+The repository's documented results for the **type 2 diabetes subgroup**, evaluated on held-out participants, are:
+
+| Model / baseline | ROC-AUC | 95% interval | PR-AUC |
+|---|---:|---:|---:|
+| Logistic Regression | 0.800 | 0.766–0.839 | 0.484 |
+| XGBoost | 0.787 | 0.744–0.830 | 0.465 |
+| “High and rising” rule | 0.733 | 0.701–0.756 | Not reported |
+
+The documented spike base rate in this subgroup is **15.9%**. Logistic Regression and XGBoost perform similarly in these experiments; the reported results do not establish that one is universally better.
+
+The project documentation also reports a typical meal-model error of approximately **31 mg/dL**, compared with approximately 39 mg/dL when predicting the average. Treat this as an experimental result on a small dataset, not a guarantee of performance for new people or meals.
+
+### Interpreting the numbers
+
+- **ROC-AUC** measures how well a model ranks positive cases above negative cases across thresholds.
+- **PR-AUC** summarizes precision-recall performance and is especially useful when positive cases are relatively uncommon.
+- A good aggregate score does not mean every alert is correct or that the model is suitable for clinical use.
+
+Results are dependent on this dataset, preprocessing, validation design, and threshold. They require independent external validation before any real-world use.
+
+## Technology stack
+
+- **Language:** Python 3.12
+- **Data processing:** pandas, NumPy
+- **Machine learning:** scikit-learn, XGBoost
+- **Model interpretation:** SHAP
+- **Dashboard:** Streamlit
+- **Visualization:** Matplotlib
+- **Notebook / analysis tooling:** Jupyter
+
+## Repository structure
+
+The repository is organized around the following areas:
+
+```text
+strawhats_AITPune/
+├── app/                  # Streamlit dashboard
+├── data/
+│   ├── raw/              # Downloaded source datasets (not committed)
+│   └── processed/        # Cleaned data and engineered features
+├── docs/
+│   ├── presentation.pdf  # Project presentation
+│   └── architecture.pdf  # System architecture
+├── models/               # Trained model artifacts
+├── src/
+│   ├── generate_data.py  # Synthetic data generator
+│   ├── load_cgmacros.py  # CGMacros loading/preprocessing
+│   ├── features.py       # Resampling and feature engineering
+│   ├── train.py          # Spike classifier training/evaluation
+│   ├── train_meal.py     # Meal-response model training
+│   ├── indian_meals.py   # Indian meal data preparation
+│   └── evaluate.py       # Evaluation workflow
+├── requirements.txt
+├── LICENSE
+└── README.md
+```
+
+Some generated files and filenames may vary as the project evolves. Refer to the current repository tree if a path differs.
+
+## Getting started
+
+### Prerequisites
+
+- Git
+- Python **3.12**
+- `uv` package manager (recommended by the project workflow)
+- The required source datasets downloaded separately
+
+### 1. Clone the repository
+
 ```bash
-uv venv --python 3.12 && source .venv/bin/activate
+git clone https://github.com/delulu-monkey/strawhats_AITPune.git
+cd strawhats_AITPune
+```
+
+### 2. Create and activate a virtual environment
+
+```bash
+uv venv --python 3.12
+source .venv/bin/activate
+```
+
+On Windows PowerShell, activate the environment with:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+### 3. Install dependencies
+
+```bash
 uv pip install -r requirements.txt
-# 1. download CGMacros from PhysioNet into data/raw/cgmacros/ and unzip
-# 2. download INDB into data/raw/indb/
-python src/load_cgmacros.py && python src/features.py
-python src/train.py && python src/train_meal.py && python src/indian_meals.py
-python src/evaluate.py
+```
+
+The repository's `requirements.txt` pins many packages. If installation fails on your platform, check that you are using Python 3.12 and review the package error before changing pinned versions.
+
+### 4. Download and place the datasets
+
+Download CGMacros from its official PhysioNet record, review its access and citation requirements, and place the extracted source files under:
+
+```text
+data/raw/cgmacros/
+```
+
+Obtain the Indian Nutrient Databank data required by the meal workflow and place it under:
+
+```text
+data/raw/indb/
+```
+
+The datasets are not included in this Git repository. The exact source archive structure may require matching the expected filenames in the loader scripts.
+
+## Running the application
+
+After the required processed data and model artifacts have been generated, launch the dashboard from the repository root:
+
+```bash
 streamlit run app/dashboard.py
 ```
 
-## Tech stack
-Python 3.12, pandas, NumPy, scikit-learn, XGBoost, SHAP, Streamlit, Matplotlib.
+Streamlit will print a local URL in the terminal. Open that URL in your browser.
 
-## License
-Code: MIT (see `LICENSE`). Datasets keep their original licenses (see Data).
+If the dashboard reports missing files, confirm that you have completed the preprocessing and training steps below and that the expected files exist in `data/processed/` and `models/`.
 
-## References
-- CGMacros dataset, PhysioNet. CITATION FROM THE PHYSIONET PAGE.
-- Vijayakumar A, Dubasi HB, Awasthi A, Jaacks LM. Development of an Indian Food
-  Composition Database. Current Developments in Nutrition, 2024.
+## Reproducing the pipeline
 
----
+Run the commands from the repository root, in order:
 
-## Simulation workspace
-
-### Purpose
-The Simulation Workspace provides an interactive, physiological digital twin sandbox for clinicians, researchers, and challenge evaluators. While the core project evaluates 2-hour postprandial glucose spike prediction on real clinical data, the simulation workspace allows clinicians to:
-- Instantiate multi-modal virtual patients with complete physiological streams (continuous CGM glucose, sleep stages, pedometer steps, continuous heart rate, nocturnal HRV, meal logs, clinical laboratory panels, diagnoses, medications, and polygenic risk scores).
-- Run deterministic multi-day physiological simulations calibrated against real clinical targets.
-- Explore counterfactual what-if interventions in a sandbox (sleep restriction, food challenges with Indian meals, brisk walking, habitual activity changes) to observe 24-hour glycemic divergence.
-- Inspect the 45 real CGMacros human participants alongside virtual personas under strict clinical honesty standards.
-
-### Honesty Rules (Non-Negotiable)
-1. **Explicit Provenance Labelling:** Everything produced by the simulator is explicitly marked as `SIMULATED` (with a `source="simulated"` column in files and high-visibility UI badges).
-2. **Never Mix Data Streams:** Never attach simulated or synthetic values to real CGMacros human participants. Modalities not collected in the clinical study (sleep architecture, pedometer steps, HRV, genetic variants, diagnoses, medications) strictly display `NOT AVAILABLE`.
-3. **Partitioned Model Training:** Never mix simulated rows into real-data model training or real-data evaluation. The real-data headline performance (AUC ~0.80 on unseen T2D patients) remains completely untainted.
-4. **Transparent Assumptions:** Every physiological mechanism lives in ONE centralized file ([`src/sim/assumptions.py`](file:///home/luffy/strawhats_AITPune/src/sim/assumptions.py)), with a documented rationale noting that effect sizes are assumptions, not learned from data.
-5. **Pipeline Demonstration Only:** Results on simulated cohorts demonstrate digital twin pipeline capability, never clinical proof or treatment efficacy.
-6. **Safety Banner:** Prominent research prototype disclaimers state that the workspace is intended strictly for educational, research, or anonymised demonstrations, not as a diagnostic medical device.
-7. **Original Visuals:** All graphics and icons are 100% original, generated via code (CSS and inline SVG), with zero copied or downloaded images.
-
-### Provenance Badges Explained
-- `REAL`: Directly observed empirical measurements from the clinical study (CGMacros Libre CGM, demographics, lab blood panels).
-- `SIMULATED`: Synthetic or model-generated physiological data produced by the mathematical simulator engine.
-- `USER-ENTERED`: Parameters configured or typed in by the clinician in patient creation or sandbox forms.
-- `NOT AVAILABLE`: Modalities that were not collected in the clinical study protocol (e.g., polysomnography, steps, HRV, genotyping).
-
-### Real vs. Simulated Data Comparison
-| Modality / Feature | Real Data (CGMacros) | Simulated Virtual Patients | Notes & Status |
-|---|:---:|:---:|---|
-| **Continuous Glucose (CGM)** | Libre 1-min & Dexcom G6 | Calibrated 5-min AR(1) sensor noise | Calibrated to real mean glucose, night baseline & meal rise |
-| **Heart Rate** | Apple Watch optical HR (1-min) | Circadian sinusoidal baseline + activity rise | Matches real resting HR (~76–78 bpm) |
-| **Heart Rate Variability (HRV)** | ❌ NOT AVAILABLE | Nocturnal RMSSD (30–65 ms) with sleep modulation | Derived from sleep stage & autonomic tone assumptions |
-| **Sleep Architecture** | ❌ NOT AVAILABLE | 5-min stages (Deep, Light, REM, Awake) in 90-min cycles | Calibrated sleep architecture with sleep debt dynamics |
-| **Pedometer Steps** | ❌ NOT AVAILABLE (only METs/kcal) | 5-min step counts (habitual schedule + walks) | Walking activates non-insulin GLUT4 glucose uptake |
-| **Meal Intake & Macros** | Photo logs + nutritional estimation | 17 Indian dishes (INDB catalogue) + unlogged ghost snacks | Scaled to ~50–55g carbs/meal matching CGMacros logs |
-| **Laboratory Blood Panel** | Venous labs (HbA1c, fasting glu, insulin, lipids) | Comprehensive panel derived from ADAG & IR models | Fully customizable per patient profile |
-| **Medical Diagnoses** | Only HbA1c classification (Healthy / Pre / T2D) | Structured chronic condition tags (HTN, Dyslipidemia, etc.) | Informational clinical context |
-| **Medications** | Study intake did not log exact doses | Active pharmacological agents (e.g. Metformin) | Metformin applies modest fasting reduction assumption |
-| **Genomics / Polygenic** | ❌ NOT AVAILABLE | Polygenic risk score (0–100) & 5 T2D risk allele counts | Contributes to additive insulin resistance index |
-
-### Calibration & Twin Model Reports
-- **Simulator Fidelity Report:** See [`docs/results/sim_fidelity.md`](file:///home/luffy/strawhats_AITPune/docs/results/sim_fidelity.md) for calibration results against real CGMacros cohorts across 7 clinical statistics and 3 HbA1c groups, alongside the comparison plot `docs/results/sim_fidelity.png`.
-- **Digital Twin Model Report:** See [`docs/results/twin_model_report.md`](file:///home/luffy/strawhats_AITPune/docs/results/twin_model_report.md) for benchmark comparison between the real-data model and the twin model trained on a 300-patient simulated cohort, feature importances (SHAP), and domain-transfer gap analysis.
-
-### How to Run the Simulation Workspace
 ```bash
-# Activate the virtual environment
-source .venv/bin/activate
+# 1. Load and preprocess CGMacros
+python src/load_cgmacros.py
 
-# Run the complete test suite (39 automated unit & UI integration tests)
-pytest tests/
+# 2. Build five-minute features and prediction targets
+python src/features.py
 
-# Launch the Simulation Workspace
-streamlit run app/sim_workspace.py
+# 3. Train/evaluate the glucose-spike classifiers
+python src/train.py
+
+# 4. Train the meal-response model
+python src/train_meal.py
+
+# 5. Prepare Indian meal scenarios
+python src/indian_meals.py
+
+# 6. Run the evaluation workflow
+python src/evaluate.py
+
+# 7. Launch the dashboard
+streamlit run app/dashboard.py
 ```
 
-### Limitations of Simulated Data
-- **Model Assumptions, Not Clinical Truth:** Simulated outputs reflect mathematical assumptions encoded in `src/sim/assumptions.py`, not real biological complexity.
-- **Simplified Physiology:** Complex hormonal feedback (glucagon, amylin, incretins/GLP-1, hepatic glycogenolysis kinetics) is approximated by lumped mathematical functions (gamma curves and exponential return rates).
-- **Lower Nocturnal Variability:** As documented in the fidelity report, real diabetic patients exhibit unpredictable nocturnal glucose swings that stationary AR(1) noise cannot fully capture (-45% to -49% std dev).
-- **Not a Diagnostic Tool:** All scenario interventions and spike predictions are intended solely for exploration, teaching, and system stress-testing.
+The exact order and expected input/output files are determined by the scripts; if a step fails, check the paths and filenames expected by that script. Do not skip dataset preparation.
 
+## Limitations
+
+Please read these limitations before interpreting the dashboard:
+
+- **Small cohort:** the type 2 diabetes subgroup contains only 14 participants, with roughly ten days of observations per participant. This is a proof of concept.
+- **Limited external validity:** the source cohort is predominantly US-based. The system has not been validated on an Indian patient cohort.
+- **Approximate meal data:** Indian dish nutrition and portions are database-based estimates; actual recipes and servings vary.
+- **Unlogged intake:** snacks, drinks, and meals that are not recorded are invisible to the model.
+- **Restricted wearable signals:** the real dataset includes heart-rate and activity signals, but not step-count or sleep data.
+- **Row-level metrics:** reported metrics are calculated per five-minute observation. Episode-level performance has not been established.
+- **Meal what-if uncertainty:** meal estimates are association-based, with limited training examples for very high carbohydrate quantities. They are not causal simulations.
+- **High-glucose focus only:** the model does not predict hypoglycaemia (low glucose).
+- **Demonstration patients:** patients shown in the dashboard may have contributed to model training. The held-out validation results are separate from the dashboard demonstration.
+- **No clinical validation:** the prototype has not established clinical safety, regulatory approval, or improved patient outcomes.
+
+### Intended use and safety
+
+Use this project for learning, research, and demonstration only. Do not use its predictions to change medication, insulin dosage, diet, or treatment. Real-world clinical use would require appropriate consent and privacy protections, prospective and independent validation, clinical oversight, and relevant regulatory review.
+
+## Team
+
+**Team Strawhats — Army Institute of Technology, Pune**
+
+- **Adarsh Singh Bhadauriya** — Team Lead
+- **Prabhat Ranjan**
+- **Pawan Singh Kunwar**
+- **Sumit Kumar**
+
+Project materials:
+- [Presentation slides](docs/presentation.pdf)
+- [Architecture document](docs/architecture.pdf)
+
+Add the public demonstration video URL here when it is available; the previous README contained a placeholder rather than a working link.
+
+## References and data licensing
+
+1. **CGMacros dataset.** PhysioNet. Use the official dataset record for the current citation, access instructions, and terms: [PhysioNet](https://physionet.org/).
+2. **Vijayakumar A, Dubasi HB, Awasthi A, Jaacks LM.** *Development of an Indian Food Composition Database.* Current Developments in Nutrition, 2024. Consult the publication for the formal citation and data-use terms.
+
+Dataset licenses are separate from the license for this repository's source code. Verify and follow the original terms before redistributing data or derived files.
+
+## License
+
+The source code in this repository is distributed under the **MIT License**. See [`LICENSE`](LICENSE) for the full text. The MIT license for code does not override the separate licenses or terms governing third-party datasets.
