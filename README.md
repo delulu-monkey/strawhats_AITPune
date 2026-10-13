@@ -8,11 +8,11 @@ Type 2 Diabetes Digital Twin: a virtual patient workspace that fuses EHR data an
 
 | Role / Field | Detail |
 |:---|:---|
-| **Team Name** | TODO: Team name <!-- src: docs/SIM_BRIEF.md --> |
-| **College / Incubator** | TODO: College or incubator name <!-- src: docs/SIM_BRIEF.md --> |
-| **Team Leader** | TODO: Team leader name <!-- src: docs/SIM_BRIEF.md --> |
-| **Team Members** | TODO: Team member names <!-- src: docs/SIM_BRIEF.md --> |
-| **Contact Email** | TODO: Team contact email <!-- src: docs/SIM_BRIEF.md --> |
+| **Team Name** | strawhats <!-- src: docs/SIM_BRIEF.md --> |
+| **College / Incubator** | Army Institute of Technology, Pune <!-- src: docs/SIM_BRIEF.md --> |
+| **Team Leader** | Adarsh Singh Bhadauriya  <!-- src: docs/SIM_BRIEF.md --> |
+| **Team Members** | Prabhat Ranjan | Pawan Singh Kunwar | Sumit Kumar <!-- src: docs/SIM_BRIEF.md --> |
+| **Contact Email** | adarshaingh7080@gmail.com <!-- src: docs/SIM_BRIEF.md --> |
 
 ---
 
@@ -65,32 +65,7 @@ The project consists of two parallel, decoupled pipelines that share model infer
 ### Architecture Data Flow Diagram
 
 ```text
-+-----------------------------------------------------------------------------------+
-|                            REAL CLINICAL DATA TRACK                               |
-|                                                                                   |
-|  [CGMacros (PhysioNet)]                                                           |
-|  - 45 Participants (Libre CGM, Optical HR, Activity, Meals, Bio Labs)            |
-|         |                                                                         |
-|         v                                                                         |
-|  [src/load_cgmacros.py] -> data/processed/cgmacros_all.csv.gz                     |
-|         |                                                                         |
-|         v                                                                         |
-|  [src/features.py] -> 5-min Resampling, Lags, Rolling Stats, 3h Macros            |
-|         |          -> data/processed/features.csv.gz                              |
-|         v                                                                         |
-|  [src/train.py, src/train_meal.py] (5-Fold GroupKFold by Person)                  |
-|         |                                                                         |
-|         +---> models/logistic_spike_model.pkl (AUC 0.800)                         |
-|         +---> models/xgb_spike_model.pkl      (AUC 0.787)                         |
-|         +---> models/meal_response_rf.pkl     (MAE 31.5 mg/dL)                    |
-|         |                                                                         |
-|         v                                                                         |
-|  [Clinical Dashboard (app/dashboard.py)]                                          |
-|  - Real Participant Risk Tiers (Low/Watch/High), SHAP Reasons, Meal What-If       |
-+-----------------------------------------------------------------------------------+
-                                          |
-                         Shared Model Inference & Feature Schema
-                                          |
+
 +-----------------------------------------------------------------------------------+
 |                        SIMULATED DIGITAL TWIN TRACK                               |
 |                                                                                   |
@@ -318,7 +293,7 @@ pytest tests/
 ### 5. Obtaining Real Clinical Data (CGMacros & INDB)
 To train models from scratch or inspect real human reference participants:
 1. **Download CGMacros from PhysioNet:**
-   - Source: PhysioNet CGMacros Study (TODO: verify download URL at PhysioNet).
+   - Source: PhysioNet CGMacros Study ([TODO: verify download URL at PhysioNet](https://www.physionet.org/content/cgmacros/1.0.0/?utm_source=chatgpt.com)).
    - Place downloaded files into `data/raw/cgmacros/` and extract `CGMacros_dateshifted365.zip` so that `bio.csv` is located at `data/raw/cgmacros/CGMacros/bio.csv`.
 2. **Download INDB (Indian Nutrient Databank):**
    - Source: Current Developments in Nutrition (TODO: verify download URL).
@@ -369,7 +344,6 @@ In our fresh-clone test in an isolated environment without external downloads:
 ```text
 strawhats_AITPune/
 ├── app/
-│   ├── dashboard.py                   # Real-data clinical doctor dashboard (Streamlit)
 │   ├── sim_workspace.py               # Main Virtual Patient Simulation Workspace entry point
 │   └── sim_ui/                        # Modular simulation interface components
 │       ├── assumptions_view.py        # Viewer for physiological simulator constants
@@ -401,23 +375,15 @@ strawhats_AITPune/
 │           ├── sedentary_night_shift_worker.json
 │           └── well_controlled_45.json
 ├── docs/
-│   ├── architecture.png               # High-level architecture pipeline diagram
-│   ├── AUDIT.md                       # Independent data honesty and calculation audit
-│   ├── DATA_LICENSES.md               # Detailed licensing and redistribution notes
-│   ├── findings.md                    # Real-data model performance, ablations, and findings
 │   ├── real_glucose_reference.md      # Empirical FreeStyle Libre sensor regressions
-│   ├── SIM_BRIEF.md                   # Simulation workspace project specification and rules
 │   ├── sim_fidelity.md                # Simulator calibration report against CGMacros IQR
 │   ├── sim_fidelity.png               # Comparative calibration bar chart
-│   ├── SIM_PROGRESS.md                # Implementation log and milestone tracking
-│   ├── value_check.md                 # Value consistency check across 6 virtual presets
 │   ├── results/                       # Generated evaluation reports and figures
 │   │   ├── auc_per_person.png         # Per-person ROC-AUC scatter plot
 │   │   ├── logistic_weights.png       # Logistic regression feature weights
 │   │   ├── roc_pr_t2d.png             # Held-out T2D ROC and PR curves
 │   │   ├── shap_xgboost.png           # SHAP summary plot on XGBoost classifier
 │   │   └── twin_model_report.md       # Sim-to-real domain transfer evaluation report
-│   └── ui_screenshots/                # Visual captures of workspace interfaces
 ├── models/
 │   ├── logistic_spike_model.pkl       # Real-data Logistic Regression spike classifier
 │   ├── meal_response_rf.pkl           # Real-data Random Forest postprandial meal model
@@ -463,50 +429,10 @@ strawhats_AITPune/
 └── README.md                          # Project documentation and hackathon submission
 ```
 
----
-
-## 12. Visual Demonstrations
-
-A complete demonstration video walkthrough is available:
-- **Demonstration Video:** TODO: unlisted YouTube demonstration video URL
-
-### Workspace Interface Screenshots
-
-#### 1. Patient View: Multimodal Telemetry and Tele-Monitoring
-![Patient View](docs/ui_screenshots/patient_view_well_controlled_1440.png)  
-*Figure 1: Full Patient View displaying continuous CGM trajectory, sleep hypnogram stages, pedometer step distribution, continuous heart rate, and metabolic panels. Data shown: **SIMULATED** (Well-Controlled 45yo preset).*
-
-#### 2. Counterfactual Scenario Sandbox
-![Scenario Sandbox](docs/ui_screenshots/scenario_sandbox_results_1440.png)  
-*Figure 2: Scenario Sandbox evaluating 24-hour counterfactual divergence following an Indian food challenge and sleep restriction. Data shown: **SIMULATED**.*
-
-#### 3. Add Custom Patient Interface
-![Add Patient](docs/ui_screenshots/add_patient_1440.png)  
-*Figure 3: Clinician custom patient builder form with live BMI calculation, lab panel entry, and seed configuration. Data shown: **USER-ENTERED**.*
-
-#### 4. Real Reference Patients Inspection
-![Real Reference Patients](docs/ui_screenshots/real_patient_1440.png)  
-*Figure 4: Real Reference Patients page inspecting observed clinical labs from CGMacros study participants. Modalities not collected in the clinical protocol strictly display NOT AVAILABLE badges. Data shown: **REAL** (CGMacros participant).*
-
-#### 5. Simulation Assumptions Viewer
-![Simulation Assumptions](docs/ui_screenshots/assumptions.png)  
-*Figure 5: Simulation Assumptions page detailing physiological constants, clinical units, and tuned values. Data shown: **SIMULATED**.*
-
----
-
-## 13. Open-Source License
-
-The source code in this repository is licensed under the **MIT License**. See [`LICENSE`](LICENSE) for the full license text.
-
-For terms of use, licensing, and redistribution notes regarding third-party datasets and resources (including CGMacros and INDB), please refer to [`docs/DATA_LICENSES.md`](docs/DATA_LICENSES.md).
-
----
-
-## 14. Acknowledgements and References
+## 12. Acknowledgements and References
 
 1. **CGMacros Dataset:**
    - Hall H, et al. CGMacros Continuous Glucose Monitoring and Macronutrient Study. PhysioNet.
-   - Citation: TODO: verify complete citation from PhysioNet dataset page <!-- src: docs/SIM_BRIEF.md -->
 2. **Indian Nutrient Databank (INDB):**
    - Vijayakumar A, Dubasi HB, Awasthi A, Jaacks LM. Development of an Indian Food Composition Database. *Current Developments in Nutrition*, 2024;8(9):104443. <!-- src: README.md, docs/SIM_BRIEF.md -->
 3. **Core Open-Source Libraries:**
