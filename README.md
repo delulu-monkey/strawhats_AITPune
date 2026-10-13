@@ -11,7 +11,7 @@ Type 2 Diabetes Digital Twin: a virtual patient workspace that fuses EHR data an
 | **Team Name** | strawhats <!-- src: docs/SIM_BRIEF.md --> |
 | **College / Incubator** | Army Institute of Technology, Pune <!-- src: docs/SIM_BRIEF.md --> |
 | **Team Leader** | Adarsh Singh Bhadauriya  <!-- src: docs/SIM_BRIEF.md --> |
-| **Team Members** | Prabhat Ranjan | Pawan Singh Kunwar | Sumit Kumar <!-- src: docs/SIM_BRIEF.md --> |
+| **Team Members** | Prabhat Ranjan, Pawan Singh Kunwar, Sumit Kumar <!-- src: docs/SIM_BRIEF.md --> |
 | **Contact Email** | adarshaingh7080@gmail.com <!-- src: docs/SIM_BRIEF.md --> |
 
 ---
