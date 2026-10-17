@@ -1,6 +1,6 @@
 <div align="center">
 
-![Digital Twin Hero Banner](docs/hero_banner.jpg)
+![Digital Twin Hero Banner](docs/intro.mp4)
 
 # 🧬 GlucoTwin — Type 2 Diabetes Digital Twin
 
