@@ -1,6 +1,6 @@
 <div align="center">
 
-https://github.com/user-attachments/assets/2a480b84-1ab7-42e8-aae1-6de7b21b1f06
+<img width="640" height="368" alt="intro-ezgif com-webp-to-gif-converter" src="https://github.com/user-attachments/assets/e4d3a91b-d08d-4ab7-81af-7c5583d2af8f" />
 
 # 🧬 GlucoTwin — Type 2 Diabetes Digital Twin
 
@@ -180,7 +180,7 @@ The project consists of two **parallel, decoupled pipelines** that share model i
 
 <div align="center">
 
-![System Architecture](docs/architecture.jpg)
+![System Architecture](docs/arch.png)
 
 </div>
 
