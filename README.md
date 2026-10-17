@@ -53,7 +53,7 @@
 
 | | Detail |
 |:---|:---|
-| 🏷️ **Team Name** | **Strawhats** |
+| 🏷️ **Team Name** | **strawhats** |
 | 🏫 **College / Incubator** | Army Institute of Technology, Pune |
 | 👑 **Team Leader** | Adarsh Singh Bhadauriya |
 | 👨‍💻 **Team Members** | Prabhat Ranjan · Pawan Singh Kunwar · Sumit Kumar |
