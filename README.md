@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 ![Digital Twin Hero Banner](docs/hero_banner.jpg)
 
@@ -742,4 +742,3 @@ This project was built for the **Happiest Health — Reimagining and Reforming H
 ![MIT](https://img.shields.io/badge/License-MIT-00d4aa?style=flat-square)
 
 </div>
-]]>
