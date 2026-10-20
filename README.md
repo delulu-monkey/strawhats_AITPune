@@ -666,7 +666,7 @@ The project presentation slide deck is available at [`docs/presentation.pdf`](do
 
 > 📹 A comprehensive **20+ minute video walkthrough** demonstrating the complete Digital Twin prototype is available here:
 >
-> 🔗 **[Watch Demo Video on YouTube](#)** *(Unlisted)*
+> 🔗 **https://youtu.be/_Ti40Y72qL8(#)** *(Unlisted)*
 >
 > The video covers: system architecture, data pipeline, model training, virtual patient creation, scenario sandbox, SHAP explanations, and clinical dashboard walkthrough.
 
