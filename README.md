@@ -182,7 +182,7 @@ The project consists of two **parallel, decoupled pipelines** that share model i
 
 ![System Architecture](docs/arch.png)
 
-The project presentation slide deck is available at [`docs/presentation.pdf`](docs/architecture.pdf).
+The project presentation slide deck is available at (docs/architecture.pdf).
 
 </div>
 
