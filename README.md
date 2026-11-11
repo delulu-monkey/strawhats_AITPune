@@ -16,8 +16,6 @@
 
 **A proof-of-concept Digital Twin model that fuses Electronic Health Records (EHR) with continuous wearable sensor data to predict dangerous glucose spikes 2 hours before they happen — enabling proactive, personalized Type 2 Diabetes management.**
 
-*Built for the [Happiest Health — Reimagining and Reforming Healthcare in India Summit 2026](https://happiesthealthsummit.com), Bengaluru*
-
 [🚀 Quick Start](#-quick-start) · [📊 Results](#-results) · [🏗️ Architecture](#%EF%B8%8F-system-architecture) · [🎥 Demo Video](#-demonstration-video) · [📄 Presentation](#-presentation)
 
 </div>
@@ -56,7 +54,7 @@
 | **Team Name** | **strawhats** |
 | **College / Incubator** | Army Institute of Technology, Pune |
 | **Team Leader** | Adarsh Singh Bhadauriya |
-| **Team Members** | Prabhat Ranjan · Pawan Singh Kunwar · Sumit Kumar |
+| **Team Members** | Prabhat Ranjan · Pawan Singh Kunwar · Sumit Kumar . Deva . Tanish |
 | **Contact Email** | adarshaingh7080@gmail.com |
 
 </div>
